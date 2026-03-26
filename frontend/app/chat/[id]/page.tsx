@@ -98,7 +98,7 @@ function MsgBubble({ msg, isMe, onReact, onReply, onDelete, userName }: {
           {/* Reactions */}
           {(msg.reactions?.length || 0) > 0 && (
             <div className="absolute -bottom-3 flex gap-0.5 bg-white dark:bg-gray-700 rounded-full px-1.5 py-0.5 shadow border dark:border-gray-600 text-xs">
-              {[...new Set(msg.reactions!.map(r => r.emoji))].map((e, i) => <span key={i}>{e}</span>)}
+              {Array.from(new Set(msg.reactions!.map(r => r.emoji))).map((e, i) => <span key={i}>{e}</span>)}
             </div>
           )}
         </div>

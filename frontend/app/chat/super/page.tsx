@@ -263,7 +263,7 @@ export default function SuperChatPage() {
 
                       {!isAI && (
                         <div className="flex items-center justify-end gap-1 mt-1">
-                          {msg.expiryTime && <Timer size={10} className="opacity-50" title="Disappearing message" />}
+                          {msg.expiryTime && <Timer size={10} className="opacity-50" />}
                           <span className="text-[9px] opacity-70">12:45 PM</span>
                           {isMe && <div className="text-blue-200">{msg.status === 'read' ? <CheckCheck size={12} /> : <Check size={12} />}</div>}
                         </div>

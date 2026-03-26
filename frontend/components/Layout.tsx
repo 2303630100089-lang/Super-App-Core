@@ -6,130 +6,162 @@ import {
   Home, MessageCircle, Compass, Grid, User, LogOut, 
   LayoutDashboard, Briefcase, Code2, Rss, Utensils, 
   ShoppingBag, Wallet, ChevronRight, ShieldCheck, 
-  Truck, Store, Info
+  Truck, Store, Info, Moon, Sun, Zap
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, logout, isReady } = useAuth()
   const { appMode, setAppMode } = useAuthStore()
   const pathname = usePathname()
   const [showModeInfo, setShowModeInfo] = useState(false)
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'))
+  }, [])
 
   if (!isReady) return null
   if (!isAuthenticated) return <>{children}</>
 
+  // Color-coded nav items — each icon/label has its own unique hue like syntax highlighting
   const navItems = {
     user: [
-      { label: 'Home', icon: Home, href: '/' },
-      { label: 'Feed', icon: Rss, href: '/feed' },
-      { label: 'Messages', icon: MessageCircle, href: '/chat' },
-      { label: 'Apps', icon: Grid, href: '/apps' },
-      { label: 'Settings', icon: User, href: '/settings' },
+      { label: 'Home', icon: Home, href: '/', color: 'text-[var(--syn-keyword)]', bg: 'bg-purple-500/10' },
+      { label: 'Feed', icon: Rss, href: '/feed', color: 'text-[var(--syn-variable)]', bg: 'bg-orange-500/10' },
+      { label: 'Messages', icon: MessageCircle, href: '/chat', color: 'text-[var(--syn-function)]', bg: 'bg-blue-500/10' },
+      { label: 'Apps', icon: Grid, href: '/apps', color: 'text-[var(--syn-type)]', bg: 'bg-cyan-500/10' },
+      { label: 'Settings', icon: User, href: '/settings', color: 'text-[var(--syn-comment)]', bg: 'bg-gray-500/10' },
     ],
     business: [
-      { label: 'Dashboard', icon: LayoutDashboard, href: '/business-dashboard' },
-      { label: 'Listings', icon: Store, href: '/marketplace/manage' },
-      { label: 'Ride Jobs', icon: Truck, href: '/rides/jobs' },
-      { label: 'Analytics', icon: ShieldCheck, href: '/business/analytics' },
-      { label: 'Settings', icon: User, href: '/settings' },
+      { label: 'Dashboard', icon: LayoutDashboard, href: '/business-dashboard', color: 'text-[var(--syn-string)]', bg: 'bg-emerald-500/10' },
+      { label: 'Listings', icon: Store, href: '/marketplace/manage', color: 'text-[var(--syn-variable)]', bg: 'bg-orange-500/10' },
+      { label: 'Ride Jobs', icon: Truck, href: '/rides/jobs', color: 'text-[var(--syn-function)]', bg: 'bg-blue-500/10' },
+      { label: 'Analytics', icon: ShieldCheck, href: '/business/analytics', color: 'text-[var(--syn-keyword)]', bg: 'bg-purple-500/10' },
+      { label: 'Settings', icon: User, href: '/settings', color: 'text-[var(--syn-comment)]', bg: 'bg-gray-500/10' },
     ]
   }
 
   const currentNav = navItems[appMode as 'user' | 'business'] || navItems.user
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-72 bg-white dark:bg-gray-800 border-r dark:border-gray-700">
-        <div className="p-6">
-            <h1 className="font-black text-2xl tracking-tighter text-blue-600 dark:text-blue-400">SUPERAPP</h1>
+    <div className="flex h-screen bg-[var(--bg-primary)]">
+      {/* ─── Sidebar (Desktop) ─── */}
+      <aside className="hidden md:flex flex-col w-72 bg-[var(--bg-card)] border-r border-gray-200/50 dark:border-gray-800/50">
+        {/* Logo */}
+        <div className="p-6 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--syn-keyword)] to-[var(--syn-function)] flex items-center justify-center shadow-lg shadow-purple-500/20">
+            <Zap size={20} className="text-white" />
+          </div>
+          <div>
+            <h1 className="font-black text-lg tracking-tighter shimmer-text">SUPERAPP</h1>
+            <p className="text-[9px] font-bold text-[var(--syn-comment)] uppercase tracking-[0.2em]">v2.0</p>
+          </div>
         </div>
 
         {/* Mode Switcher */}
         <div className="px-4 mb-4">
-            <div className="bg-gray-50 dark:bg-gray-900/50 p-1 rounded-xl flex gap-1 border dark:border-gray-700">
-                {(['user', 'business'] as const).map((mode) => (
-                    <button
-                        key={mode}
-                        onClick={() => setAppMode(mode)}
-                        className={clsx(
-                            "flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
-                            appMode === mode 
-                                ? "bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400" 
-                                : "text-gray-400 hover:text-gray-600"
-                        )}
-                    >
-                        {mode}
-                    </button>
-                ))}
+          <div className="bg-[var(--bg-elevated)] p-1.5 rounded-2xl flex gap-1 border border-gray-200/30 dark:border-gray-700/30">
+            {(['user', 'business'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setAppMode(mode)}
+                className={clsx(
+                  "flex-1 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] rounded-xl transition-all duration-300",
+                  appMode === mode 
+                    ? mode === 'user' 
+                      ? "bg-gradient-to-r from-[var(--syn-keyword)] to-[var(--syn-function)] text-white shadow-md shadow-purple-500/20" 
+                      : "bg-gradient-to-r from-[var(--syn-string)] to-[var(--syn-type)] text-white shadow-md shadow-emerald-500/20"
+                    : "text-[var(--syn-comment)] hover:text-[var(--text-primary)]"
+                )}
+              >
+                {mode === 'user' ? '👤 Personal' : '💼 Business'}
+              </button>
+            ))}
+          </div>
+          <button 
+            onMouseEnter={() => setShowModeInfo(true)}
+            onMouseLeave={() => setShowModeInfo(false)}
+            className="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--syn-comment)] hover:text-[var(--syn-function)] ml-1 transition-colors"
+          >
+            <Info size={12} />
+            What are App Modes?
+          </button>
+          
+          {showModeInfo && (
+            <div className="absolute left-72 top-24 w-72 p-5 bg-[var(--bg-card)] rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 z-50 animate-scale-in">
+              <h4 className="font-black text-sm mb-3">🎨 Switching App Modes</h4>
+              <p className="text-xs text-[var(--syn-comment)] leading-relaxed">
+                <span className="text-[var(--syn-keyword)] font-black">👤 PERSONAL:</span> Social life — chat, shop, date, book rides & food.<br/><br/>
+                <span className="text-[var(--syn-string)] font-black">💼 BUSINESS:</span> Merchant tools — sell products, manage deliveries, track earnings.
+              </p>
             </div>
-            <button 
-                onMouseEnter={() => setShowModeInfo(true)}
-                onMouseLeave={() => setShowModeInfo(false)}
-                className="mt-2 flex items-center gap-1.5 text-[10px] text-gray-400 hover:text-blue-500 ml-1 transition-colors"
-            >
-                <Info size={12} />
-                What are App Modes?
-            </button>
-            
-            {showModeInfo && (
-                <div className="absolute left-72 top-20 w-64 p-4 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border dark:border-gray-700 z-50 animate-in fade-in slide-in-from-left-2">
-                    <h4 className="font-bold text-sm mb-2 dark:text-white">Switching App Modes</h4>
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                        <span className="text-blue-500 font-bold">USER:</span> Standard mode for social, shopping, and booking.<br/><br/>
-                        <span className="text-green-500 font-bold">BUSINESS:</span> Management tools for merchants, service providers, and drivers.
-                    </p>
-                </div>
-            )}
+          )}
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {currentNav.map(item => (
-            <Link key={item.href} href={item.href} className={clsx(
-              "flex items-center justify-between group p-3 rounded-xl transition-all",
-              pathname === item.href 
-                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-sm" 
-                : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-            )}>
-              <div className="flex items-center gap-3">
-                <item.icon size={20} className={clsx(pathname === item.href ? "scale-110" : "group-hover:scale-110 transition-transform")} />
-                <span className="font-medium">{item.label}</span>
-              </div>
-              {pathname === item.href && <ChevronRight size={14} />}
-            </Link>
-          ))}
+        {/* Navigation */}
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+          {currentNav.map(item => {
+            const isActive = pathname === item.href
+            return (
+              <Link key={item.href} href={item.href} className={clsx(
+                "flex items-center justify-between group p-3.5 rounded-2xl transition-all duration-200",
+                isActive 
+                  ? `${item.bg} ${item.color} shadow-sm` 
+                  : "text-[var(--syn-comment)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+              )}>
+                <div className="flex items-center gap-3">
+                  <div className={clsx(
+                    "p-1.5 rounded-xl transition-all",
+                    isActive && item.bg
+                  )}>
+                    <item.icon size={20} className={clsx(
+                      isActive ? "scale-110" : "group-hover:scale-110 transition-transform"
+                    )} />
+                  </div>
+                  <span className="font-semibold text-sm">{item.label}</span>
+                </div>
+                {isActive && <ChevronRight size={14} className="animate-slide-up" />}
+              </Link>
+            )
+          })}
         </nav>
 
-        <div className="p-4 border-t dark:border-gray-700">
-          <button onClick={logout} className="flex items-center gap-3 p-3 w-full text-red-500 font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors">
+        {/* Bottom */}
+        <div className="p-4 border-t border-gray-200/30 dark:border-gray-800/30 space-y-2">
+          <button onClick={logout} className="flex items-center gap-3 p-3 w-full text-[var(--syn-constant)] font-bold text-sm hover:bg-red-50 dark:hover:bg-red-900/10 rounded-2xl transition-all">
             <LogOut size={20} />
             <span>Logout</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* ─── Main Content ─── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <div className="flex-1 overflow-y-auto pb-24 md:pb-0">
           {children}
         </div>
       </main>
 
-      {/* Bottom Nav for Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border-t dark:border-gray-700 flex justify-around p-3 pb-safe z-50">
-        {currentNav.slice(0, 5).map(item => (
-          <Link key={item.href} href={item.href} className={clsx(
-            "flex flex-col items-center gap-1 px-2 py-1 rounded-lg",
-            pathname === item.href ? "text-blue-600 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
-          )}>
-            <item.icon size={24} />
-            <span className="text-[10px] font-bold">{item.label}</span>
-          </Link>
-        ))}
+      {/* ─── Bottom Nav (Mobile) ─── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 glass border-t border-gray-200/30 dark:border-gray-700/30 flex justify-around py-2 pb-safe z-50">
+        {currentNav.slice(0, 5).map(item => {
+          const isActive = pathname === item.href
+          return (
+            <Link key={item.href} href={item.href} className={clsx(
+              "flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all",
+              isActive 
+                ? `${item.color} ${item.bg}` 
+                : "text-[var(--syn-comment)]"
+            )}>
+              <item.icon size={22} className={clsx(isActive && "scale-110 transition-transform")} />
+              <span className="text-[9px] font-black tracking-wider">{item.label}</span>
+            </Link>
+          )
+        })}
       </nav>
     </div>
   )

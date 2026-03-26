@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import useAuthStore from '@/store/useAuthStore'
 import { CameraModule } from '@/components/snaps/CameraModule'
-import { X, Send, User, ChevronRight, Clock, Eye, RotateCcw } from 'lucide-react'
+import { X, Send, User, ChevronRight, Clock, Eye, RotateCcw, Camera } from 'lucide-react'
 import api from '@/services/api'
 
 interface Snap {
