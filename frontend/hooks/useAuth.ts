@@ -22,13 +22,23 @@ export const useAuth = (requireAuth = true) => {
         try {
             const profileRes = await api.get(`/users/profile/${user.id}`).catch(() => null)
             const profile = profileRes?.data?.data;
-            const resolvedName = profile?.name || profile?.username || user?.email?.split('@')[0];
-            if (resolvedName) {
+            
+            // If profile fetch fails, use email as fallback name
+            const resolvedName = profile?.name || profile?.username || user?.email?.split('@')[0] || 'User';
+            if (resolvedName && resolvedName !== 'User') {
                 setAuth({ 
                     id: user.id, 
-                    email: profile.email || user?.email,
-                name: resolvedName,
-                    avatar: profile.avatar
+                    email: profile?.email || user?.email,
+                    name: resolvedName,
+                    avatar: profile?.avatar
+                }, token)
+            } else if (resolvedName === 'User') {
+                // Use minimal user info if profile unavailable
+                setAuth({ 
+                    id: user.id, 
+                    email: user?.email,
+                    name: resolvedName,
+                    avatar: undefined
                 }, token)
             }
         } catch (err) { console.error('Profile fetch failed', err) }
