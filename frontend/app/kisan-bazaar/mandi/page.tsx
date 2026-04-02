@@ -24,7 +24,9 @@ const CROPS = [
   { name: 'Chilli (Red)', min: 9000, max: 11000, modal: 10000, trend: 'up', change: 7.5, emoji: '🌶️' },
 ]
 
-const COMPARE_DATA = {
+type MandiPrices = Record<string, number>
+
+const COMPARE_DATA: Record<string, MandiPrices> = {
   Mumbai: { Wheat: 2200, Rice: 3300, Tomato: 1900 },
   Delhi: { Wheat: 2100, Rice: 3150, Tomato: 1750 },
   Punjab: { Wheat: 2150, Rice: 3200, Tomato: 1800 },
@@ -202,9 +204,9 @@ export default function MandiPage() {
               {Object.entries(COMPARE_DATA).map(([mandi, prices]) => (
                 <div key={mandi} className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-4 text-center">
                   <p className="font-black text-sm text-gray-700 dark:text-gray-300 mb-2">{mandi}</p>
-                  <p className="text-2xl font-black text-green-600">₹{(prices as any)[compareCrop] ?? 'N/A'}</p>
+                  <p className="text-2xl font-black text-green-600">₹{prices[compareCrop] ?? 'N/A'}</p>
                   <p className="text-[10px] text-gray-400 font-bold mt-1">/quintal</p>
-                  {(prices as any)[compareCrop] === Math.min(...Object.values(COMPARE_DATA).map((p: any) => p[compareCrop] || Infinity)) && (
+                  {prices[compareCrop] === Math.min(...Object.values(COMPARE_DATA).map(p => p[compareCrop] || Infinity)) && (
                     <span className="inline-block mt-1 bg-green-100 dark:bg-green-900/30 text-green-600 text-[10px] font-black px-2 py-0.5 rounded-full">Lowest</span>
                   )}
                 </div>

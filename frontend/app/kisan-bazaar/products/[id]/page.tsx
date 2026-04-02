@@ -155,7 +155,7 @@ export default function ProductDetailPage() {
                     <td className="p-3 text-right">
                       {tier.price !== 'Contact' ? (
                         <span className="text-green-600 font-black text-xs bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">
-                          Save {Math.round((1 - parseInt(tier.price) / PRODUCT.price) * 100)}%
+                          Save {Math.round((1 - Number(tier.price.replace(/[^\d]/g, '')) / PRODUCT.price) * 100)}%
                         </span>
                       ) : (
                         <span className="text-blue-500 font-bold text-xs">Negotiate</span>
