@@ -111,7 +111,7 @@ export default function ChatListPage() {
         router.push(`/chat/${targetId}`)
         setModal(null); return
       }
-      queryClient.invalidateQueries({ queryKey: ['chats'] })
+      queryClient.invalidateQueries({ queryKey: ['conversations', user?.id] })
       setModal(null); setModalName(''); setModalDesc(''); setSelectedUsers([])
     } catch (e) { console.error(e) }
     finally { setCreating(false) }

@@ -7,7 +7,13 @@ const api = axios.create({
 })
 
 const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_STALE_TIME = 10000; // 10 seconds
+const CACHE_STALE_TIME = 30000; // 30 seconds — increased for faster page loads
+
+// Paths that should never be cached (real-time / write-sensitive)
+const NO_CACHE_PATTERNS = ['/notifications', '/chats', '/social/feed'];
+
+const isCacheable = (url: string) =>
+  !NO_CACHE_PATTERNS.some(p => url.includes(p));
 
 // Request interceptor for adding the auth token
 api.interceptors.request.use(
@@ -53,8 +59,12 @@ api.interceptors.response.use(
 )
 
 // Wrapper for GET requests to implement fast in-memory caching
-const originalGet = api.get;
+const originalGet = api.get.bind(api);
 api.get = async (url: string, config?: any) => {
+  if (!isCacheable(url)) {
+    return originalGet(url, config);
+  }
+
   const cacheKey = url + (config?.params ? JSON.stringify(config.params) : '');
   const cached = cache.get(cacheKey);
   
@@ -64,13 +74,25 @@ api.get = async (url: string, config?: any) => {
       status: 200, 
       statusText: 'OK', 
       headers: {}, 
-      config: config || {} 
+      config: config || {},
+      cached: true,
     } as any);
   }
   
   const response = await originalGet(url, config);
   cache.set(cacheKey, { data: response.data, timestamp: Date.now() });
   return response;
+};
+
+// Expose cache invalidation so mutations can bust stale data
+export const invalidateApiCache = (urlPattern?: string) => {
+  if (!urlPattern) {
+    cache.clear();
+    return;
+  }
+  for (const key of cache.keys()) {
+    if (key.includes(urlPattern)) cache.delete(key);
+  }
 };
 
 export default api

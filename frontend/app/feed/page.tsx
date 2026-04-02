@@ -58,6 +58,50 @@ const StoryCircle = ({ user, active, onClick }: { user: any; active?: boolean; o
   </button>
 )
 
+// ─── Story Viewer Modal ──────────────────────────────────────────────────────
+const StoryViewerModal = ({ story, onClose }: { story: any; onClose: () => void }) => {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm" onClick={onClose}>
+      <div className="relative max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-3 px-1">
+          <AvatarWithFallback src={story.userAvatar} name={story.userName || story.userId} className="w-10 h-10 rounded-full object-cover" />
+          <span className="font-bold text-white text-sm">{story.userName || story.userId || 'User'}</span>
+          <span className="text-xs text-gray-400 ml-auto">{story.createdAt ? new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+        </div>
+        {story.mediaType === 'video' ? (
+          <video
+            src={story.mediaUrl}
+            className="w-full rounded-2xl max-h-[70vh] object-cover"
+            autoPlay
+            controls
+            playsInline
+          />
+        ) : (
+          <img
+            src={story.mediaUrl}
+            alt="Story"
+            className="w-full rounded-2xl max-h-[70vh] object-cover"
+          />
+        )}
+        {story.caption && (
+          <p className="mt-2 text-white text-sm text-center px-2">{story.caption}</p>
+        )}
+        <button
+          onClick={onClose}
+          className="absolute -top-10 right-0 text-white/70 hover:text-white text-2xl font-bold"
+          aria-label="Close story"
+        >✕</button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Page ──────────────────────────────────────────────────────────────
 export default function FeedPage() {
   const { user } = useAuthStore()
@@ -67,6 +111,7 @@ export default function FeedPage() {
   const [stories, setStories] = useState<any[]>([])
   const [showComposer, setShowComposer] = useState(false)
   const [storyUploading, setStoryUploading] = useState(false)
+  const [viewingStory, setViewingStory] = useState<any | null>(null)
   const storyInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -220,7 +265,7 @@ export default function FeedPage() {
             {storyUploading ? 'Uploading...' : 'Your Story'}
           </span>
         </div>
-        {stories.map((s, i) => <StoryCircle key={i} user={s} active={s.hasUnviewed} onClick={() => {}} />)}
+        {stories.map((s, i) => <StoryCircle key={i} user={s} active={s.hasUnviewed} onClick={() => setViewingStory(s)} />)}
       </div>
 
       {/* Post Composer Button */}
@@ -288,6 +333,14 @@ export default function FeedPage() {
         onSubmit={handleCreatePost}
         isLoading={posting}
       />
+
+      {/* Story Viewer Modal */}
+      {viewingStory && (
+        <StoryViewerModal
+          story={viewingStory}
+          onClose={() => setViewingStory(null)}
+        />
+      )}
     </div>
   )
 }

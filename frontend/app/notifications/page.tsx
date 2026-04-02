@@ -10,11 +10,12 @@ export default function NotificationsPage() {
   const { user } = useAuthStore()
   const queryClient = useQueryClient()
 
-  const { data: notifications, isLoading } = useQuery({
+  const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       const { data } = await api.get(`/notifications/${user?.id}`)
-      return data
+      // Normalize: backend returns { status, data: [...] }
+      return Array.isArray(data) ? data : (data?.data || [])
     },
     enabled: !!user?.id,
     refetchInterval: 15000,
@@ -22,14 +23,14 @@ export default function NotificationsPage() {
   })
 
   const markReadMutation = useMutation({
-    mutationFn: (notifId: string) => api.patch(`/notifications/${notifId}/read`),
+    mutationFn: (notifId: string) => api.post(`/notifications/${notifId}/read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] })
     }
   })
 
   const markAllReadMutation = useMutation({
-    mutationFn: () => api.post('/notifications/read-all', { userId: user?.id }),
+    mutationFn: () => api.post(`/notifications/${user?.id}/read-all`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] })
     }

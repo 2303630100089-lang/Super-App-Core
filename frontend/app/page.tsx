@@ -87,8 +87,9 @@ export default function HomePage() {
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['notifications-unread', user?.id],
     queryFn: async () => {
-      const { data } = await api.get(`/notifications/notify/${user?.id}`)
-      return data?.data?.filter((n: any) => !n.isRead)?.length || 0
+      const { data } = await api.get(`/notifications/${user?.id}`)
+      const list = Array.isArray(data) ? data : (data?.data || [])
+      return list.filter((n: any) => !n.isRead)?.length || 0
     },
     enabled: isReady && !!user?.id,
     refetchInterval: 15000

@@ -521,7 +521,7 @@ export default function DatingPage() {
                      age: parseInt(formData.get('age') as string),
                      gender: formData.get('gender'),
                      bio: formData.get('bio'),
-                     interests: (formData.get('interests') as string).split(',').map(s => s.trim()),
+                     interests: ((formData.get('interests') as string) || '').split(',').map(s => s.trim()).filter(Boolean),
                    })
                  }}
                  className="p-8 space-y-6 flex-1 overflow-y-auto scrollbar-hide"

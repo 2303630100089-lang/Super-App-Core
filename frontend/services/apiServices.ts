@@ -256,12 +256,12 @@ export const getNotifications = async (userId: string) => {
 };
 
 export const markNotificationRead = async (notificationId: string) => {
-  const { data } = await api.patch(`/notifications/${notificationId}/read`);
+  const { data } = await api.post(`/notifications/${notificationId}/read`);
   return data;
 };
 
 export const markAllNotificationsRead = async (userId: string) => {
-  const { data } = await api.patch(`/notifications/read-all`, { userId });
+  const { data } = await api.post(`/notifications/${userId}/read-all`);
   return data;
 };
 
