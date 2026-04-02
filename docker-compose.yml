@@ -77,6 +77,7 @@ services:
       - MINI_APP_SERVICE_URL=http://mini-app-service:5016
       - DEVELOPER_PLATFORM_SERVICE_URL=http://developer-platform-service:5038
       - HOTEL_SERVICE_URL=http://hotel-service:5021
+      - ECONOMY_SERVICE_URL=http://economy-service:5022
     networks:
       - superapp-network
 

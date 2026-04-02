@@ -310,9 +310,10 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-1 gap-2">
                     {[
                       { id: 'product_seller', label: 'Product Seller', icon: Package },
-                      { id: 'rider', label: 'Ride/Delivery Driver', icon: Car },
+                      { id: 'rider', label: 'Ride / Delivery Driver', icon: Car },
                       { id: 'restaurant_manager', label: 'Restaurant Manager', icon: Utensils },
-                      { id: 'hotel_manager', label: 'Hotel Manager', icon: Hotel }
+                      { id: 'hotel_manager', label: 'Hotel Manager', icon: Hotel },
+                      { id: 'freelancer', label: 'Freelancer / Gig Worker', icon: Briefcase },
                     ].map(role => (
                       <button key={role.id} onClick={() => setBusinessType(role.id as any)}
                         className={clsx("flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left", 

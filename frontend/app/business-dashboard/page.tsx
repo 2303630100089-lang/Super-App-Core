@@ -12,16 +12,31 @@ import {
   FileText, Tag, Gift, Percent, RefreshCw, Eye, Bell,
   ChevronRight, PlusCircle, Image as ImageIcon, Play, Pause,
   ShieldCheck, Truck, Store, BookOpen, TrendingDown, AlertTriangle,
-  ArrowUpRight, ArrowDownRight, Activity
+  ArrowUpRight, ArrowDownRight, Activity, Briefcase
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import clsx from 'clsx'
 
+// Map Zustand businessType → dashboard tab
+const BUSINESS_TYPE_TAB: Record<string, string> = {
+  rider: 'rider',
+  hotel_manager: 'hotel',
+  restaurant_manager: 'restaurant',
+  product_seller: 'store',
+  freelancer: 'freelancer',
+  other: 'overview',
+}
+
 export default function BusinessDashboardPage() {
-  const { user } = useAuthStore()
+  const { user, businessType } = useAuthStore()
   const queryClient = useQueryClient()
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(() => BUSINESS_TYPE_TAB[businessType] || 'overview')
+
+  // Keep active tab in sync when user changes their businessType in Settings
+  useEffect(() => {
+    setActiveTab(BUSINESS_TYPE_TAB[businessType] || 'overview')
+  }, [businessType])
 
   const { data: dashboard, isLoading, error } = useQuery({
     queryKey: ['business-summary', user?.id],
@@ -645,6 +660,68 @@ export default function BusinessDashboardPage() {
     return <div className="text-center py-20 font-black text-gray-400 uppercase tracking-widest">Section Coming Soon</div>
   }
 
+  // ─── Freelancer section (inside renderActiveSection is not possible directly,
+  // handled inline below via renderActiveSection call that checks activeTab)
+
+  const renderFreelancerSection = () => (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
+          <Briefcase className="text-indigo-500" /> Freelancer Dashboard
+        </h2>
+        <Link href="/services" className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all">
+          <PlusCircle size={14} /> New Gig
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        {[
+          { label: 'Total Earnings', value: `₹${revenue?.total || 0}`, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+          { label: 'Active Orders', value: activeData?.orders?.length || 0, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { label: 'Rating', value: profile.rating || '5.0', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+          { label: 'Completed', value: orders?.completed || 0, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+        ].map(s => (
+          <div key={s.label} className={`p-6 rounded-2xl border dark:border-gray-800 ${s.bg}`}>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{s.label}</p>
+            <p className={`text-3xl font-black ${s.color}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+      <section className="bg-white dark:bg-gray-900 rounded-[2rem] border dark:border-gray-800 p-8">
+        <h3 className="font-black uppercase tracking-tighter mb-5 flex items-center gap-2">
+          <Clock size={18} className="text-indigo-500" /> Active Orders
+        </h3>
+        {activeData?.orders?.length > 0 ? (
+          <div className="space-y-3">
+            {activeData.orders.map((ord: any) => (
+              <div key={ord._id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border dark:border-gray-700">
+                <div>
+                  <p className="font-black text-sm uppercase dark:text-white">Order #{ord._id?.slice(-6)}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">{ord.status}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-emerald-600 text-sm">₹{ord.totalPrice || ord.amount || 0}</span>
+                  <Link href={`/chat/${ord.buyerId || ord.userId}`} className="p-2 bg-white dark:bg-gray-700 rounded-xl border dark:border-gray-600 text-blue-600">
+                    <MessageCircle size={16} />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 opacity-30">
+            <Briefcase className="mx-auto mb-2" />
+            <p className="text-[10px] font-black uppercase">No active orders — post a gig to start earning</p>
+          </div>
+        )}
+      </section>
+      <div className="text-center">
+        <Link href="/services" className="inline-flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all">
+          <Globe size={16} /> Browse All Gigs
+        </Link>
+      </div>
+    </div>
+  )
+
   return (
     <div className="flex h-[calc(100vh-64px)] bg-gray-50 dark:bg-gray-950 overflow-hidden">
       {/* Sidebar */}
@@ -701,6 +778,11 @@ export default function BusinessDashboardPage() {
               <Hotel size={18} /> Hospitality
             </button>
           )}
+
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-4 mt-4 mb-2">Fiverr-Style</p>
+          <button onClick={() => setActiveTab('freelancer')} className={clsx("w-full flex items-center gap-4 p-4 rounded-2xl transition-all font-black text-xs uppercase tracking-widest", activeTab === 'freelancer' ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/20" : "text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800")}>
+            <Briefcase size={18} /> Freelancer Hub
+          </button>
         </nav>
         <div className="p-6 border-t dark:border-gray-800">
            <button className="flex items-center gap-4 p-4 w-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl transition-all font-black text-xs uppercase tracking-widest">
@@ -717,6 +799,7 @@ export default function BusinessDashboardPage() {
           { id: 'store', label: 'Store', icon: Store },
           { id: 'delivery', label: 'Delivery', icon: Truck },
           { id: 'analytics', label: 'Stats', icon: BarChart2 },
+          { id: 'freelancer', label: 'Gigs', icon: Briefcase },
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={clsx("flex flex-col items-center gap-1 px-4 py-2 rounded-xl shrink-0 transition-all font-black text-[9px] uppercase tracking-widest",
@@ -766,6 +849,7 @@ export default function BusinessDashboardPage() {
         )}
 
         {renderActiveSection()}
+        {activeTab === 'freelancer' && renderFreelancerSection()}
       </main>
     </div>
   )

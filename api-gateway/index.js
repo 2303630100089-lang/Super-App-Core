@@ -282,6 +282,12 @@ app.use('/api/developer', authenticateToken, createProxyMiddleware({
   ...proxyOptions
 }));
 
+app.use('/api/economy', authenticateToken, createProxyMiddleware({
+  target: process.env.ECONOMY_SERVICE_URL || 'http://localhost:5022',
+  pathRewrite: { '^/api/economy': '' },
+  ...proxyOptions
+}));
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
