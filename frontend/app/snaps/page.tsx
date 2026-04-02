@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import useAuthStore from '@/store/useAuthStore'
 import { CameraModule } from '@/components/snaps/CameraModule'
-import { X, Send, User, ChevronRight, Clock, Eye, RotateCcw, Camera } from 'lucide-react'
+import { X, Send, User, ChevronRight, Clock, Eye, RotateCcw, Camera, MapPin, Flame, Star, Search, Zap, Trophy, Bell } from 'lucide-react'
 import api from '@/services/api'
 
 interface Snap {
@@ -20,7 +20,15 @@ interface UserProfile {
   userId: string
   name: string
   avatar: string
+  streak?: number
 }
+
+const FRIENDS_STREAKS = [
+  { name: 'Priya', streak: 42, emoji: '🔥', avatar: '' },
+  { name: 'Rahul', streak: 18, emoji: '⭐', avatar: '' },
+  { name: 'Anjali', streak: 7, emoji: '🌟', avatar: '' },
+  { name: 'Dev', streak: 3, emoji: '🔥', avatar: '' },
+]
 
 export default function SnapsPage() {
   const [snaps, setSnaps] = useState<Snap[]>([])
@@ -180,55 +188,105 @@ export default function SnapsPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
+    <div className="max-w-md mx-auto min-h-screen bg-yellow-400 dark:bg-gray-950 flex flex-col">
       {/* Header */}
-      <header className="p-8 pb-4 flex justify-between items-center">
+      <header className="p-6 pb-2 flex justify-between items-center bg-yellow-400 dark:bg-gray-950">
         <div>
-          <h1 className="text-3xl font-black dark:text-white tracking-tight">Snaps</h1>
-          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Inbox</p>
+          <h1 className="text-3xl font-black text-black dark:text-white tracking-tight">Snaps</h1>
         </div>
         <div className="flex gap-2">
-            <button className="p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border dark:border-gray-800 text-slate-400"><Clock size={20}/></button>
+            <button className="p-3 bg-yellow-300/60 dark:bg-gray-900 rounded-2xl text-black dark:text-slate-400"><Search size={20}/></button>
+            <button className="p-3 bg-yellow-300/60 dark:bg-gray-900 rounded-2xl text-black dark:text-slate-400"><Bell size={20}/></button>
             <button 
                onClick={() => setIsCameraOpen(true)}
-               className="p-3 bg-yellow-400 rounded-2xl shadow-lg border border-yellow-300 text-black active:scale-90 transition-transform"
+               className="p-3 bg-black rounded-2xl shadow-lg text-yellow-400 active:scale-90 transition-transform"
             >
                <Camera size={20} />
             </button>
         </div>
       </header>
-      
-      {/* Inbox */}
-      <div className="flex-1 p-6 space-y-4">
-        {loading ? (
-          <div className="space-y-4">
-            {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-gray-900 animate-pulse rounded-3xl" />)}
-          </div>
-        ) : snaps.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-             <div className="w-20 h-20 bg-gray-100 dark:bg-gray-900 rounded-[2rem] flex items-center justify-center text-4xl mb-4">👻</div>
-             <p className="font-black text-sm text-gray-400 uppercase tracking-widest">Your inbox is empty</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {snaps.map(snap => (
-              <div 
-                key={snap._id}
-                onClick={() => openSnap(snap)}
-                className="flex items-center p-5 bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm border dark:border-gray-800 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mr-4 shadow-sm ${snap.isViewed ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 border-2 border-purple-200/50'}`}>
-                  {snap.mediaType === 'image' ? <Eye size={24}/> : <Eye size={24}/>}
+
+      {/* Snap Score */}
+      <div className="mx-6 my-3 p-4 bg-black/10 dark:bg-gray-800/50 rounded-2xl flex items-center gap-4">
+        <div className="w-12 h-12 bg-yellow-300 rounded-2xl flex items-center justify-center font-black text-black text-lg">👻</div>
+        <div className="flex-1">
+          <p className="font-black text-black dark:text-white text-sm">Snap Score</p>
+          <p className="font-black text-2xl text-black dark:text-white">14,820</p>
+        </div>
+        <div className="flex items-center gap-1 bg-orange-500 text-white px-3 py-1 rounded-full font-black text-xs">
+          <Flame size={14} /> 🔥 Streak
+        </div>
+      </div>
+
+      <div className="flex-1 bg-white dark:bg-gray-950 rounded-t-[2.5rem] pt-6 flex flex-col">
+        {/* Friends Streaks */}
+        <div className="px-6 mb-4">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Trophy size={12} /> Best Streaks</p>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar">
+            {FRIENDS_STREAKS.map(f => (
+              <div key={f.name} className="flex flex-col items-center gap-1 shrink-0">
+                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center font-black text-white text-lg border-2 border-yellow-200">
+                  {f.avatar ? <img src={f.avatar} className="w-full h-full object-cover rounded-full" alt=""/> : f.name[0]}
+                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-950 rounded-full text-xs px-1 font-black text-orange-500 border border-yellow-200">🔥{f.streak}</div>
                 </div>
-                <div className="flex-1">
-                  <h3 className={`font-black text-sm uppercase tracking-tight ${snap.isViewed ? 'text-slate-400' : 'text-slate-800 dark:text-white'}`}>{snap.senderId}</h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(snap.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {snap.duration}s</p>
-                </div>
-                {!snap.isViewed && <div className="w-3 h-3 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]"></div>}
+                <span className="text-[9px] font-black text-gray-500 uppercase">{f.name}</span>
               </div>
             ))}
           </div>
-        )}
+        </div>
+
+        <div className="px-6 mb-2">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2"><Zap size={12} className="text-purple-500" /> Inbox</p>
+        </div>
+      
+        {/* Inbox */}
+        <div className="flex-1 px-6 space-y-3 overflow-y-auto pb-24">
+          {loading ? (
+            <div className="space-y-4">
+              {[1,2,3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-gray-900 animate-pulse rounded-3xl" />)}
+            </div>
+          ) : snaps.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+               <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/20 rounded-[2rem] flex items-center justify-center text-4xl mb-4">👻</div>
+               <p className="font-black text-sm text-gray-400 uppercase tracking-widest">No Snaps Yet!</p>
+               <p className="text-xs text-gray-400 mt-1">Send your first snap to a friend</p>
+               <button onClick={() => setIsCameraOpen(true)} className="mt-4 px-6 py-3 bg-yellow-400 text-black font-black rounded-2xl text-xs uppercase tracking-widest">
+                 Open Camera
+               </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {snaps.map(snap => (
+                <div 
+                  key={snap._id}
+                  onClick={() => openSnap(snap)}
+                  className="flex items-center p-5 bg-white dark:bg-gray-900 rounded-[2rem] shadow-sm border dark:border-gray-800 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mr-4 shadow-sm ${snap.isViewed ? 'bg-slate-100 dark:bg-slate-800 text-slate-400' : 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 border-2 border-yellow-200/50'}`}>
+                    {snap.mediaType === 'image' ? <Eye size={24}/> : <Eye size={24}/>}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`font-black text-sm uppercase tracking-tight ${snap.isViewed ? 'text-slate-400' : 'text-slate-800 dark:text-white'}`}>{snap.senderId}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(snap.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {snap.duration}s</p>
+                  </div>
+                  {!snap.isViewed && <div className="w-4 h-4 bg-yellow-400 rounded-full shadow-lg shadow-yellow-400/50"></div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Snap Map Banner */}
+      <div className="fixed bottom-20 left-6 right-6 bg-black/90 backdrop-blur-md text-white rounded-2xl p-4 flex items-center gap-3 shadow-2xl z-30 md:hidden">
+        <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shrink-0">
+          <MapPin size={20} />
+        </div>
+        <div className="flex-1">
+          <p className="font-black text-sm">Snap Map</p>
+          <p className="text-[10px] text-white/60">See where your friends are</p>
+        </div>
+        <button className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Open →</button>
       </div>
 
       {/* Snap Viewer Overlay */}
@@ -236,7 +294,7 @@ export default function SnapsPage() {
         <div className="fixed inset-0 z-[100] bg-black">
             <div className="absolute top-8 left-8 right-8 z-10 flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center font-black text-white">{activeSnap.senderId[0]}</div>
+                    <div className="w-10 h-10 bg-yellow-400/20 backdrop-blur-md rounded-full flex items-center justify-center font-black text-yellow-400 border border-yellow-400/30">{activeSnap.senderId[0]}</div>
                     <div>
                         <p className="font-black text-white text-xs uppercase tracking-widest">{activeSnap.senderId}</p>
                         <p className="text-[10px] text-white/60 font-bold uppercase">Now</p>
@@ -257,7 +315,7 @@ export default function SnapsPage() {
             </div>
 
             {activeSnap.mediaType === 'image' ? (
-                <img src={activeSnap.mediaUrl} className="w-full h-full object-cover" />
+                <img src={activeSnap.mediaUrl} className="w-full h-full object-cover" alt="snap" />
             ) : (
                 <video src={activeSnap.mediaUrl} autoPlay className="w-full h-full object-cover" />
             )}

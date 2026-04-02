@@ -6,7 +6,9 @@ import api from '@/services/api'
 import { supabase } from '@/lib/supabase'
 import {
   Plus, X, Heart, MessageCircle, Eye, Send,
-  ChevronLeft, ChevronRight, Loader2, Image as ImageIcon
+  ChevronLeft, ChevronRight, Loader2, Image as ImageIcon,
+  Star, Music, MapPin, Smile, Type, Trash2, Share2,
+  Bookmark, Users, Lock, Archive, MoreHorizontal
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -17,6 +19,14 @@ interface Story {
 }
 
 interface StoryGroup { userId: string; userName: string; avatar: string; stories: Story[]; seen: boolean }
+
+type StoryAudience = 'everyone' | 'close_friends' | 'only_me'
+
+const HIGHLIGHTS = [
+  { id: '1', title: 'Travel', emoji: '✈️', count: 8 },
+  { id: '2', title: 'Food', emoji: '🍔', count: 12 },
+  { id: '3', title: 'Family', emoji: '👨‍👩‍👧', count: 5 },
+]
 
 export default function StatusPage() {
   const { user } = useAuthStore()
@@ -30,6 +40,9 @@ export default function StatusPage() {
   const [uploading, setUploading] = useState(false)
   const [caption, setCaption] = useState('')
   const [previewFile, setPreviewFile] = useState<{ url: string; type: 'image' | 'video'; file: File } | null>(null)
+  const [audience, setAudience] = useState<StoryAudience>('everyone')
+  const [showAudiencePicker, setShowAudiencePicker] = useState(false)
+  const [activeSection, setActiveSection] = useState<'stories' | 'highlights'>('stories')
   const timerRef = useRef<any>(null)
 
   useEffect(() => { fetchStories() }, [])
@@ -138,37 +151,102 @@ export default function StatusPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       {/* Header */}
-      <div className="px-5 py-4 bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-20">
+      <div className="px-5 py-4 bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-20 flex items-center justify-between">
         <h1 className="text-xl font-black dark:text-white">Stories</h1>
+        <div className="flex items-center gap-2">
+          <button className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+            <Archive size={18} />
+          </button>
+          <button className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+            <MoreHorizontal size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Sections Toggle */}
+      <div className="flex gap-1 p-4 pb-0">
+        {[
+          { id: 'stories' as const, label: 'Stories' },
+          { id: 'highlights' as const, label: 'Highlights' },
+        ].map(sec => (
+          <button key={sec.id} onClick={() => setActiveSection(sec.id)}
+            className={clsx('px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all',
+              activeSection === sec.id ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800')}>
+            {sec.label}
+          </button>
+        ))}
       </div>
 
       {/* Story circles */}
-      <div className="p-4">
-        <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-          {/* Add story */}
-          <button onClick={() => fileRef.current?.click()} className="flex flex-col items-center gap-1.5 shrink-0">
-            <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-blue-400 flex items-center justify-center">
-              <Plus size={24} className="text-blue-500"/>
-            </div>
-            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Add</span>
-          </button>
-          <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFilePick}/>
-
-          {/* Story groups */}
-          {loading ? [1,2,3,4].map(i => <div key={i} className="w-16 h-16 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse shrink-0"/>)
-          : groups.filter(g => g.stories.length > 0).map(g => (
-            <button key={g.userId} onClick={() => setViewing({ group: g, idx: 0 })} className="flex flex-col items-center gap-1.5 shrink-0">
-              <div className={clsx('w-16 h-16 rounded-2xl p-0.5', g.seen ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500')}>
-                <div className="w-full h-full rounded-[14px] overflow-hidden bg-white dark:bg-gray-900 border-2 border-white dark:border-gray-900">
-                  {g.avatar ? <img src={g.avatar} className="w-full h-full object-cover" alt=""/> :
-                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl uppercase">{g.userName[0]}</div>}
+      {activeSection === 'stories' && (
+        <div className="p-4">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {/* Add story */}
+            <button onClick={() => fileRef.current?.click()} className="flex flex-col items-center gap-1.5 shrink-0">
+              <div className="relative w-16 h-16 rounded-full">
+                {user?.avatar ? (
+                  <img src={user.avatar} className="w-full h-full rounded-full object-cover border-2 border-gray-200 dark:border-gray-700" alt=""/>
+                ) : (
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl uppercase border-2 border-gray-200 dark:border-gray-700">
+                    {(user?.name || 'U')[0]}
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center">
+                  <Plus size={12} className="text-white"/>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 max-w-[64px] truncate">{g.userId === user?.id ? 'My Story' : g.userName}</span>
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Add</span>
             </button>
-          ))}
+            <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFilePick}/>
+
+            {/* Story groups */}
+            {loading ? [1,2,3,4].map(i => <div key={i} className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse shrink-0"/>)
+            : groups.filter(g => g.stories.length > 0).map(g => (
+              <button key={g.userId} onClick={() => setViewing({ group: g, idx: 0 })} className="flex flex-col items-center gap-1.5 shrink-0">
+                <div className={clsx('w-16 h-16 rounded-full p-0.5',
+                  g.seen ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500')}>
+                  <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-900 border-2 border-white dark:border-gray-900">
+                    {g.avatar ? <img src={g.avatar} className="w-full h-full object-cover" alt=""/> :
+                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xl uppercase">{g.userName[0]}</div>}
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 max-w-[64px] truncate">{g.userId === user?.id ? 'My Story' : g.userName}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Highlights */}
+      {activeSection === 'highlights' && (
+        <div className="p-4">
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {/* Create Highlight */}
+            <button className="flex flex-col items-center gap-1.5 shrink-0">
+              <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <Plus size={20} className="text-gray-400"/>
+              </div>
+              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">New</span>
+            </button>
+
+            {HIGHLIGHTS.map(h => (
+              <button key={h.id} className="flex flex-col items-center gap-1.5 shrink-0">
+                <div className="w-16 h-16 rounded-full border-2 border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 text-2xl">
+                  {h.emoji}
+                </div>
+                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 max-w-[64px] truncate">{h.title}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 px-1">
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">About Highlights</p>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Story highlights let you save your favourite stories permanently on your profile. Organise them into albums by theme, event, or mood.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Upload preview */}
       {previewFile && (
@@ -177,10 +255,38 @@ export default function StatusPage() {
             {previewFile.type === 'image' ? <img src={previewFile.url} className="w-full h-full object-cover" alt=""/> :
               <video src={previewFile.url} autoPlay loop className="w-full h-full object-cover"/>}
             <button onClick={() => setPreviewFile(null)} className="absolute top-6 left-6 p-2 bg-black/50 rounded-full text-white"><X size={20}/></button>
+
+            {/* Story sticker toolbar */}
+            <div className="absolute top-6 right-6 flex flex-col gap-3">
+              {[
+                { icon: Smile, label: 'Sticker' }, { icon: Type, label: 'Text' },
+                { icon: Music, label: 'Music' }, { icon: MapPin, label: 'Location' },
+              ].map(tool => (
+                <button key={tool.label} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-all">
+                  <tool.icon size={18} />
+                </button>
+              ))}
+            </div>
           </div>
           <div className="bg-black p-5 space-y-3">
             <input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Add a caption..."
               className="w-full bg-white/10 text-white rounded-2xl px-4 py-3 outline-none text-sm placeholder:text-white/50"/>
+
+            {/* Audience picker */}
+            <div className="flex gap-2">
+              {([
+                { id: 'everyone', label: 'Everyone', icon: '🌍' },
+                { id: 'close_friends', label: 'Close Friends', icon: '⭐' },
+                { id: 'only_me', label: 'Only Me', icon: '🔒' },
+              ] as const).map(opt => (
+                <button key={opt.id} onClick={() => setAudience(opt.id as StoryAudience)}
+                  className={clsx('flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all',
+                    audience === opt.id ? 'bg-white text-black' : 'bg-white/10 text-white/70')}>
+                  {opt.icon} {opt.label}
+                </button>
+              ))}
+            </div>
+
             <button onClick={uploadStory} disabled={uploading}
               className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60">
               {uploading ? <Loader2 size={16} className="animate-spin"/> : null}
@@ -206,7 +312,7 @@ export default function StatusPage() {
           {/* Header */}
           <div className="absolute top-8 left-4 right-4 flex items-center justify-between z-20">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-600">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-600 ring-2 ring-white/50">
                 {viewing.group.avatar ? <img src={viewing.group.avatar} className="w-full h-full object-cover" alt=""/> :
                   <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white font-black text-sm uppercase">{viewing.group.userName[0]}</div>}
               </div>
@@ -215,7 +321,13 @@ export default function StatusPage() {
                 <p className="text-white/60 text-[10px]">{new Date(currentStory.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
             </div>
-            <button onClick={() => setViewing(null)} className="p-2 bg-black/30 rounded-full text-white"><X size={18}/></button>
+            <div className="flex items-center gap-2">
+              {viewing.group.userId === user?.id && (
+                <button className="p-2 bg-black/30 rounded-full text-white"><Trash2 size={16}/></button>
+              )}
+              <button className="p-2 bg-black/30 rounded-full text-white"><Share2 size={16}/></button>
+              <button onClick={() => setViewing(null)} className="p-2 bg-black/30 rounded-full text-white"><X size={18}/></button>
+            </div>
           </div>
 
           {/* Media */}
@@ -235,8 +347,10 @@ export default function StatusPage() {
           {/* View count + actions */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-5 space-y-3">
             {viewing.group.userId === user?.id && (
-              <div className="flex items-center gap-2 text-white/70 text-xs font-bold">
-                <Eye size={14}/> {currentStory.viewers?.length || 0} views
+              <div className="flex items-center gap-4 text-white/70 text-xs font-bold">
+                <span className="flex items-center gap-1"><Eye size={14}/> {currentStory.viewers?.length || 0} views</span>
+                <span className="flex items-center gap-1"><Heart size={14}/> {currentStory.likes?.length || 0} likes</span>
+                <button className="flex items-center gap-1 hover:text-white transition-colors"><Bookmark size={14}/> Save</button>
               </div>
             )}
             <div className="flex gap-2">
