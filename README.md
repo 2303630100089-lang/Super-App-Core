@@ -62,7 +62,7 @@ The frontend is a **Next.js 16 App Router PWA** with 40+ pages, packaged as a na
 | 🚗 Uber / Ola | Real-time ride booking & driver tracking |
 | 🛒 OLX | C2C marketplace for buying & selling |
 | 🍔 Zomato / Swiggy | Restaurant browsing & food delivery |
-| 💼 LinkedIn | Professional profiles & job board |
+| 💼 LinkedIn / GitHub | Professional profiles, job board & coding stats |
 | 🟢 WeChat | Mini Apps ecosystem inside the main app |
 | 👻 Snapchat | Disappearing messages & view-once media |
 
@@ -671,7 +671,7 @@ Role {
   name          // e.g. "Admin", "Moderator", "Member"
   level         // 0 = owner (bypasses all checks)
   permissions[] // e.g. ['manage_roles', 'send_messages', 'view_audit_log']
-  color         // hex colour for UI display
+  color         // hex color for UI display
 }
 
 UserRole {
@@ -893,7 +893,7 @@ All requests go through the gateway at `http://localhost:5050`. Protected routes
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/ai/summarize` | Summarise a chat conversation |
+| POST | `/api/ai/summarize` | Summarize a chat conversation |
 | POST | `/api/ai/reply` | Get 3 smart reply suggestions |
 | POST | `/api/ai/ask` | Ask the AI anything |
 | POST | `/api/ai/recommend` | Get personalised recommendations |
