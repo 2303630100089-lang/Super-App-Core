@@ -78,7 +78,7 @@ export default function QRLoginPage() {
 
     setPollInterval(interval)
     return () => clearInterval(interval)
-  }, [status, qrToken, login, router])
+  }, [status, qrToken, router])
 
   // Countdown timer
   useEffect(() => {
