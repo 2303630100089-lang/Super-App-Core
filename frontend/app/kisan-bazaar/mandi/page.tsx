@@ -68,7 +68,7 @@ export default function MandiPage() {
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950 pb-6">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl animate-bounce">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl transition-all">
           {toast}
         </div>
       )}

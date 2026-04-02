@@ -119,7 +119,7 @@ export default function ChatListPage() {
                   </div>
                 </div>
                 <span className={`inline-block mt-1 text-[9px] font-black px-2 py-0.5 rounded-full ${chat.role === 'buyer' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'}`}>
-                  {"You're"} {chat.role === 'buyer' ? 'Buying' : 'Selling'}
+                  You&apos;re {chat.role === 'buyer' ? 'Buying' : 'Selling'}
                 </span>
               </div>
 

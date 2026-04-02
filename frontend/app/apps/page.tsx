@@ -8,7 +8,7 @@ import {
   Heart, MessageSquare, Zap, Smartphone, MapPin, Search,
   LayoutDashboard, Store, Truck, TrendingUp, Package, Settings,
   BarChart3, Users, Receipt, ArrowUpRight, Grid, Sparkles,
-  Radio, Phone, CalendarDays, ListTodo, FileText, Gamepad2, Hotel, CloudRain
+  Radio, Phone, CalendarDays, ListTodo, FileText, Gamepad2, Hotel, CloudRain, Wheat
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -37,8 +37,9 @@ const allApps: AppItem[] = [
   { name: 'Table Booking', icon: Utensils,      gradient: 'from-orange-500 to-red-500',    shadow: 'shadow-orange-500/20',  href: '/services/table-booking', desc: 'Reserve a table',  category: 'Travel' },
 
   // Shopping & Food
-  { name: 'Marketplace',   icon: ShoppingBag,   gradient: 'from-indigo-500 to-blue-600',   shadow: 'shadow-indigo-500/20',  href: '/marketplace',         desc: 'Buy & sell',          category: 'Shopping' },
-  { name: 'Food Delivery', icon: Utensils,      gradient: 'from-red-500 to-orange-500',    shadow: 'shadow-red-500/20',     href: '/food',                desc: 'Order food',          category: 'Shopping' },
+  { name: 'Marketplace',    icon: ShoppingBag,  gradient: 'from-indigo-500 to-blue-600',   shadow: 'shadow-indigo-500/20',  href: '/marketplace',         desc: 'Buy & sell',          category: 'Shopping' },
+  { name: 'Food Delivery',  icon: Utensils,     gradient: 'from-red-500 to-orange-500',    shadow: 'shadow-red-500/20',     href: '/food',                desc: 'Order food',          category: 'Shopping' },
+  { name: 'Kisan Bazaar',   icon: Wheat,        gradient: 'from-green-500 to-emerald-600', shadow: 'shadow-green-500/20',   href: '/kisan-bazaar',        desc: 'Farmer marketplace',  category: 'Agriculture' },
 
   // Productivity
   { name: 'Calendar',      icon: CalendarDays,  gradient: 'from-teal-500 to-emerald-600',  shadow: 'shadow-teal-500/20',    href: '/calendar',            desc: 'Manage schedule',     category: 'Productivity' },
@@ -94,8 +95,8 @@ export default function AppsPage() {
 
   const categories = useMemo(() => {
     const cats = appMode === 'business' 
-      ? ['All', 'Business', 'Social', 'Travel', 'Shopping', 'Productivity', 'Entertainment', 'Professional', 'Finance', 'Services']
-      : ['All', 'Social', 'Travel', 'Shopping', 'Productivity', 'Entertainment', 'Professional', 'Finance', 'Services']
+      ? ['All', 'Business', 'Social', 'Travel', 'Shopping', 'Agriculture', 'Productivity', 'Entertainment', 'Professional', 'Finance', 'Services']
+      : ['All', 'Social', 'Travel', 'Shopping', 'Agriculture', 'Productivity', 'Entertainment', 'Professional', 'Finance', 'Services']
     return cats
   }, [appMode])
 
@@ -111,6 +112,7 @@ export default function AppsPage() {
     'Professional':   { text: 'text-[var(--syn-decorator)]',bg: 'bg-indigo-500/10' },
     'Finance':        { text: 'text-[var(--syn-function)]', bg: 'bg-blue-500/10' },
     'Services':       { text: 'text-[var(--syn-comment)]',  bg: 'bg-gray-500/10' },
+    'Agriculture':    { text: 'text-green-600',              bg: 'bg-green-500/10' },
   }
 
   return (
