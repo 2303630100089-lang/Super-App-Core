@@ -60,16 +60,49 @@ export default function ChatListPage() {
     enabled: !!user?.id
   })
 
-  // Search users
+  // Search users – combines user-service list with super-comm profile search by username
   const { data: searchUsers = [], isFetching: searching } = useQuery({
     queryKey: ['user-search', searchQuery.trim()],
     queryFn: async () => {
+      const q = searchQuery.trim()
+
+      // Always fetch the base user list
       const { data } = await api.get('/users/profile/list').catch(() => ({ data: [] }))
-      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
-      if (!searchQuery.trim()) return list
-      return list.filter((u: any) =>
-        u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.userId?.toLowerCase().includes(searchQuery.toLowerCase())
+      const list: any[] = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
+
+      if (!q) return list
+
+      // Also search profiles by username/uniqueId from super-comm
+      const profileResults: any[] = await api
+        .get(`/super-comm/profile/search?q=${encodeURIComponent(q)}`)
+        .then((r) => (Array.isArray(r.data) ? r.data : []))
+        .catch(() => [])
+
+      // Normalize profile results to match user list shape
+      const profileMapped = profileResults.map((p: any) => ({
+        userId: p.userId,
+        _id: p.userId,
+        name: p.username,
+        avatar: p.avatar,
+        username: p.username,
+        uniqueId: p.uniqueId,
+      }))
+
+      // Combine and deduplicate by userId
+      const combined = [...list, ...profileMapped]
+      const seen = new Set<string>()
+      const deduped = combined.filter((u) => {
+        const id = u.userId || u._id
+        if (seen.has(id)) return false
+        seen.add(id)
+        return true
+      })
+
+      return deduped.filter((u: any) =>
+        u.name?.toLowerCase().includes(q.toLowerCase()) ||
+        u.username?.toLowerCase().includes(q.toLowerCase()) ||
+        u.uniqueId?.toLowerCase().includes(q.toLowerCase()) ||
+        u.userId?.toLowerCase().includes(q.toLowerCase())
       )
     },
     enabled: true
