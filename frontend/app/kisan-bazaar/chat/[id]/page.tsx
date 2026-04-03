@@ -61,7 +61,7 @@ export default function ChatDetailPage() {
   }
 
   const handleDeal = (type: 'accept' | 'reject') => {
-    setDealDone(type)
+    setDealDone(type === 'accept' ? 'accepted' : 'rejected')
     setShowConfirm(null)
     showToast(type === 'accept' ? '🎉 Deal accepted! Order created.' : '❌ Deal rejected.')
     if (type === 'accept') {
