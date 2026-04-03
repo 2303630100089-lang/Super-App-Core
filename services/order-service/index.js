@@ -3,8 +3,12 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
 import connectDB from './config/db.js';
 import orderRoutes from './routes/orderRoutes.js';
+import shippingRoutes from './routes/shippingRoutes.js';
 
 dotenv.config();
 
@@ -30,11 +34,6 @@ app.use(express.json());
 app.use(mongoSanitize());
 app.use(hpp());
 
-import shippingRoutes from './routes/shippingRoutes.js';
-
-import rateLimit from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
-import hpp from 'hpp';
 app.use('/', orderRoutes);
 app.use('/shipping', shippingRoutes);
 

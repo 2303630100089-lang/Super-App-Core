@@ -28,9 +28,9 @@ const limiter = rateLimit({
   message: { status: 'fail', message: 'Too many requests, please try again later.' },
 });
 app.use(limiter);
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '5mb' })); // larger limit for batch events
 app.use(mongoSanitize());
-app.use(hpp()); // larger limit for batch events
+app.use(hpp());
 
 app.use('/', analyticsRoutes);
 
