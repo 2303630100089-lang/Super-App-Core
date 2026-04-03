@@ -46,7 +46,8 @@ export const decrypt = (encryptedValue, keyHex) => {
     decipher.setAuthTag(tag);
 
     return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-  } catch {
+  } catch (err) {
+    console.error('Decryption failed:', err.message);
     return null;
   }
 };

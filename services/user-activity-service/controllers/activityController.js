@@ -1,5 +1,13 @@
 import UserActivity from '../models/UserActivity.js';
 
+// Helper: parse an integer from user input and clamp it within [min, max].
+// Returns defaultVal if the input is not a safe integer.
+const safeInt = (val, defaultVal, min, max) => {
+  const n = parseInt(val, 10);
+  if (!Number.isSafeInteger(n)) return defaultVal;
+  return Math.min(max, Math.max(min, n));
+};
+
 // POST /activity  – log a user activity event
 export const logActivity = async (req, res) => {
   try {
@@ -31,8 +39,8 @@ export const getUserActivity = async (req, res) => {
     const { userId } = req.params;
     const { serviceType, activityType, from, to, page = 1, limit = 50 } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const pageNum = safeInt(page, 1, 1, 10000);
+    const limitNum = safeInt(limit, 50, 1, 100);
 
     const filter = { userId };
     if (serviceType) filter.serviceType = serviceType;
@@ -43,9 +51,9 @@ export const getUserActivity = async (req, res) => {
       if (to) filter.timestamp.$lte = new Date(to);
     }
 
-    const skip = (pageNum - 1) * limitNum;
+    const skipVal = (pageNum - 1) * limitNum;
     const [activities, total] = await Promise.all([
-      UserActivity.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limitNum),
+      UserActivity.find(filter).sort({ timestamp: -1 }).skip(skipVal).limit(limitNum),
       UserActivity.countDocuments(filter),
     ]);
 

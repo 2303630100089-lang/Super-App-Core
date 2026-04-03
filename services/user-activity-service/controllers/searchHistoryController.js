@@ -19,18 +19,21 @@ export const saveSearch = async (req, res) => {
 export const getSearchHistory = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const rawPage = parseInt(req.query.page, 10);
+    const rawLimit = parseInt(req.query.limit, 10);
+    const pageNum = Number.isSafeInteger(rawPage) && rawPage > 0 ? Math.min(rawPage, 1000) : 1;
+    const limitNum = Number.isSafeInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
+    const skip = (pageNum - 1) * limitNum;
 
     const [history, total] = await Promise.all([
-      SearchHistory.find({ userId }).sort({ timestamp: -1 }).skip(skip).limit(parseInt(limit)),
+      SearchHistory.find({ userId }).sort({ timestamp: -1 }).skip(skip).limit(limitNum),
       SearchHistory.countDocuments({ userId }),
     ]);
 
     res.json({
       status: 'success',
       data: history,
-      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) },
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
     });
   } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });

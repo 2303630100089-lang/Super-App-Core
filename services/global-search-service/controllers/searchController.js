@@ -67,10 +67,11 @@ const getTrending = async (req, res) => {
 const getSearchHistory = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { limit = 20 } = req.query;
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limitNum = Number.isSafeInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
     const history = await SearchHistory.find({ userId })
       .sort({ timestamp: -1 })
-      .limit(parseInt(limit))
+      .limit(limitNum)
       .select('query category timestamp');
     res.json({ status: 'success', data: history });
   } catch (err) {
