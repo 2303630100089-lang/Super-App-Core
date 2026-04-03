@@ -137,6 +137,11 @@ const getHomeDashboard = async (req, res) => {
 const getPersonalisedFeed = async (req, res) => {
   try {
     const { userId } = req.params;
+    // Validate userId to prevent request-forgery via URL manipulation
+    if (!userId || !/^[\w-]{1,128}$/.test(userId)) {
+      return res.status(400).json({ error: 'Invalid userId' });
+    }
+    const safeUserId = encodeURIComponent(userId);
     const authHeader = req.headers['authorization'] || '';
     const headers = { Authorization: authHeader };
 
@@ -144,7 +149,7 @@ const getPersonalisedFeed = async (req, res) => {
     let feedSignal = { preferredServices: [], preferredCategories: [], recentSearchTerms: [] };
     try {
       const signalRes = await axios.get(
-        `${process.env.USER_ACTIVITY_SERVICE_URL}/recommendations/${userId}/feed`,
+        `${process.env.USER_ACTIVITY_SERVICE_URL}/recommendations/${safeUserId}/feed`,
         { headers }
       );
       if (signalRes.data?.data) feedSignal = signalRes.data.data;
@@ -170,7 +175,7 @@ const getPersonalisedFeed = async (req, res) => {
         .catch(() => ({ type: 'food', items: [] })),
 
       // Ride suggestions (recent destinations from activity service)
-      axios.get(`${process.env.USER_ACTIVITY_SERVICE_URL}/activity/${userId}/ride-history`, { headers })
+      axios.get(`${process.env.USER_ACTIVITY_SERVICE_URL}/activity/${safeUserId}/ride-history`, { headers })
         .then(r => ({ type: 'ride', items: (r.data.data || []).slice(0, 3) }))
         .catch(() => ({ type: 'ride', items: [] })),
     ];

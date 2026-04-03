@@ -7,25 +7,28 @@ const globalSearch = async (req, res) => {
     const authHeader = req.headers['authorization'];
     const headers = { Authorization: authHeader };
 
+    // Encode the query to prevent it from being interpreted as part of the URL path
+    const safeQ = encodeURIComponent(q || '');
+
     const searchTasks = [];
 
     if (!category || category === 'users') {
-      searchTasks.push(axios.get(`${process.env.USER_SERVICE_URL}/profile/${q}`, { headers }).catch(() => null));
+      searchTasks.push(axios.get(`${process.env.USER_SERVICE_URL}/profile/${safeQ}`, { headers }).catch(() => null));
     }
     if (!category || category === 'posts') {
-      searchTasks.push(axios.get(`${process.env.SOCIAL_SERVICE_URL}/explore?hashtag=${q}`, { headers }).catch(() => null));
+      searchTasks.push(axios.get(`${process.env.SOCIAL_SERVICE_URL}/explore?hashtag=${safeQ}`, { headers }).catch(() => null));
     }
     if (!category || category === 'marketplace') {
-      searchTasks.push(axios.get(`${process.env.ADVANCED_MARKETPLACE_SERVICE_URL}/listings?search=${q}`, { headers }).catch(() => null));
+      searchTasks.push(axios.get(`${process.env.ADVANCED_MARKETPLACE_SERVICE_URL}/listings?search=${safeQ}`, { headers }).catch(() => null));
     }
     if (!category || category === 'hotels') {
-      searchTasks.push(axios.get(`${process.env.HOTEL_SERVICE_URL}/search?q=${q}`, { headers }).catch(() => null));
+      searchTasks.push(axios.get(`${process.env.HOTEL_SERVICE_URL}/search?q=${safeQ}`, { headers }).catch(() => null));
     }
     if (!category || category === 'restaurants') {
-      searchTasks.push(axios.get(`${process.env.FOOD_SERVICE_URL}/restaurants?search=${q}`, { headers }).catch(() => null));
+      searchTasks.push(axios.get(`${process.env.FOOD_SERVICE_URL}/restaurants?search=${safeQ}`, { headers }).catch(() => null));
     }
     if (!category || category === 'jobs') {
-      searchTasks.push(axios.get(`${process.env.PROFESSIONAL_SERVICE_URL}/jobs?q=${q}`, { headers }).catch(() => null));
+      searchTasks.push(axios.get(`${process.env.PROFESSIONAL_SERVICE_URL}/jobs?q=${safeQ}`, { headers }).catch(() => null));
     }
 
     const results = await Promise.all(searchTasks);

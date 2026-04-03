@@ -9,7 +9,7 @@ const searchHistorySchema = new mongoose.Schema({
     enum: ['all', 'users', 'posts', 'marketplace', 'hotels', 'restaurants', 'jobs', 'rides', 'food'],
     default: 'all',
   },
-  resultsCount: { type: Number, default: 0 },
+  resultsCount: { type: Number, default: 0, min: 0 },
   timestamp: { type: Date, default: Date.now, index: true },
 }, { timestamps: true });
 

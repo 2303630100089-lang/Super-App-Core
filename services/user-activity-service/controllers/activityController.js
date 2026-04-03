@@ -31,6 +31,9 @@ export const getUserActivity = async (req, res) => {
     const { userId } = req.params;
     const { serviceType, activityType, from, to, page = 1, limit = 50 } = req.query;
 
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+
     const filter = { userId };
     if (serviceType) filter.serviceType = serviceType;
     if (activityType) filter.activityType = activityType;
@@ -40,16 +43,16 @@ export const getUserActivity = async (req, res) => {
       if (to) filter.timestamp.$lte = new Date(to);
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
     const [activities, total] = await Promise.all([
-      UserActivity.find(filter).sort({ timestamp: -1 }).skip(skip).limit(parseInt(limit)),
+      UserActivity.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limitNum),
       UserActivity.countDocuments(filter),
     ]);
 
     res.json({
       status: 'success',
       data: activities,
-      pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) },
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
     });
   } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });

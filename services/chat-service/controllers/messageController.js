@@ -1,6 +1,10 @@
 import Message from '../models/Message.js';
 import Chat from '../models/Chat.js';
+import mongoose from 'mongoose';
 import { generateKey, encrypt, decrypt } from '../utils/encryption.js';
+
+// Validate that a value is a valid MongoDB ObjectId to prevent NoSQL injection
+const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // Retrieve (or lazily create) the encryption key for a chat.
 const getChatEncryptionKey = async (chatId) => {
@@ -16,6 +20,7 @@ const getChatEncryptionKey = async (chatId) => {
 const sendMessage = async (req, res) => {
   const { content, chatId, senderId, messageType, type, replyTo, replyToId } = req.body;
   if (!content || !chatId) return res.sendStatus(400);
+  if (!isValidObjectId(chatId)) return res.status(400).json({ error: 'Invalid chatId' });
 
   try {
     const encryptionKey = await getChatEncryptionKey(chatId);
@@ -46,6 +51,7 @@ const sendMessage = async (req, res) => {
 const allMessages = async (req, res) => {
   try {
     const { chatId } = req.params;
+    if (!isValidObjectId(chatId)) return res.status(400).json({ error: 'Invalid chatId' });
     const encryptionKey = await getChatEncryptionKey(chatId);
 
     const messages = await Message.find({ chat: chatId })
@@ -57,7 +63,12 @@ const allMessages = async (req, res) => {
     const decrypted = messages.map(msg => {
       const plain = msg.toObject();
       if (plain.encryptedContent && encryptionKey) {
-        plain.content = decrypt(plain.encryptedContent, encryptionKey);
+        const decryptedContent = decrypt(plain.encryptedContent, encryptionKey);
+        if (decryptedContent === null) {
+          plain.content = '[Message could not be decrypted]';
+        } else {
+          plain.content = decryptedContent;
+        }
         delete plain.encryptedContent;
         delete plain.encryptionKeyId;
       }

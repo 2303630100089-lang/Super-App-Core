@@ -5,7 +5,7 @@ const searchHistorySchema = new mongoose.Schema({
   query: { type: String, required: true, trim: true },
   category: {
     type: String,
-    enum: ['all', 'users', 'posts', 'marketplace', 'hotels', 'restaurants', 'jobs'],
+    enum: ['all', 'users', 'posts', 'marketplace', 'hotels', 'restaurants', 'jobs', 'rides', 'food'],
     default: 'all',
   },
   timestamp: { type: Date, default: Date.now, index: true },
