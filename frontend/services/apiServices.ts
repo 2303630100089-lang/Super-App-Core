@@ -442,3 +442,32 @@ export const joinGameRoom = async (roomCode: string, userId: string, userName: s
   const { data } = await api.post('/games/rooms/join', { roomCode, userId, userName, avatar });
   return data;
 };
+
+// ==========================================
+// LIVE STREAMING
+// ==========================================
+export const getLiveStreams = async (category?: string) => {
+  const params = category && category !== 'All' ? `?category=${category}` : '';
+  const { data } = await api.get(`/super-comm/live${params}`);
+  return data;
+};
+
+export const startLiveStream = async (streamData: any) => {
+  const { data } = await api.post('/super-comm/live/start', streamData);
+  return data;
+};
+
+export const endLiveStream = async (streamId: string) => {
+  const { data } = await api.post(`/super-comm/live/${streamId}/end`);
+  return data;
+};
+
+export const joinLiveStream = async (streamId: string) => {
+  const { data } = await api.post(`/super-comm/live/${streamId}/join`);
+  return data;
+};
+
+export const leaveLiveStream = async (streamId: string) => {
+  const { data } = await api.post(`/super-comm/live/${streamId}/leave`);
+  return data;
+};
