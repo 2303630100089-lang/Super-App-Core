@@ -5,9 +5,17 @@ export const getEvents = async (req, res) => {
     const userId = req.params.userId || req.headers['x-user-id'];
     if (!userId) return res.status(400).json({ error: 'userId required' });
     const { month, year } = req.query;
-    const filter = { $or: [{ userId }, { sharedWith: userId }] };
+    const filter = { $or: [{ userId: String(userId) }, { sharedWith: String(userId) }] };
     if (month && year) {
-      filter.date = { $regex: `^${year}-${String(month).padStart(2, '0')}` };
+      const m = parseInt(month, 10);
+      const y = parseInt(year, 10);
+      if (!isNaN(m) && !isNaN(y)) {
+        const start = `${y}-${String(m).padStart(2, '0')}-01`;
+        const endMonth = m === 12 ? 1 : m + 1;
+        const endYear = m === 12 ? y + 1 : y;
+        const end = `${endYear}-${String(endMonth).padStart(2, '0')}-01`;
+        filter.date = { $gte: start, $lt: end };
+      }
     }
     const events = await CalendarEvent.find(filter).sort({ date: 1, time: 1 });
     res.json({ status: 'success', data: events });

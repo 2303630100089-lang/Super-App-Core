@@ -28,10 +28,20 @@ export const updateTask = async (req, res) => {
   try {
     const { taskId } = req.params;
     const userId = req.headers['x-user-id'] || req.body.userId;
-    const update = { ...req.body };
-    if (update.completed === true) update.completedAt = new Date();
-    if (update.completed === false) update.completedAt = null;
-    const task = await Task.findOneAndUpdate({ _id: taskId, userId }, update, { new: true });
+    const { title, description, completed, priority, dueDate, list, assignees, tags } = req.body;
+    const update = {};
+    if (title !== undefined) update.title = String(title);
+    if (description !== undefined) update.description = String(description);
+    if (completed !== undefined) {
+      update.completed = Boolean(completed);
+      update.completedAt = completed ? new Date() : null;
+    }
+    if (priority !== undefined) update.priority = String(priority);
+    if (dueDate !== undefined) update.dueDate = dueDate;
+    if (list !== undefined) update.list = String(list);
+    if (assignees !== undefined) update.assignees = assignees;
+    if (tags !== undefined) update.tags = tags;
+    const task = await Task.findOneAndUpdate({ _id: String(taskId), userId: String(userId) }, update, { new: true });
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.json({ status: 'success', data: task });
   } catch (err) {
@@ -43,7 +53,7 @@ export const deleteTask = async (req, res) => {
   try {
     const { taskId } = req.params;
     const userId = req.headers['x-user-id'];
-    await Task.findOneAndDelete({ _id: taskId, userId });
+    await Task.findOneAndDelete({ _id: String(taskId), userId: String(userId) });
     res.json({ status: 'success', message: 'Task deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
