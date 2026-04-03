@@ -1,8 +1,9 @@
 import axios from 'axios';
+import SearchHistory from '../models/SearchHistory.js';
 
 const globalSearch = async (req, res) => {
   try {
-    const { q, category } = req.query;
+    const { q, category, userId } = req.query;
     const authHeader = req.headers['authorization'];
     const headers = { Authorization: authHeader };
 
@@ -29,14 +30,21 @@ const globalSearch = async (req, res) => {
 
     const results = await Promise.all(searchTasks);
 
-    res.json({
+    const response = {
       users: results[0] ? (results[0].data.data || results[0].data) : [],
       posts: results[1] ? (results[1].data.data || results[1].data) : [],
       marketplace: results[2] ? (results[2].data.data || results[2].data) : [],
       hotels: results[3] ? (results[3].data.data || results[3].data) : [],
       restaurants: results[4] ? (results[4].data.data || results[4].data) : [],
       jobs: results[5] ? (results[5].data.data || results[5].data) : [],
-    });
+    };
+
+    // Persist search query for authenticated users (fire-and-forget)
+    if (userId && q) {
+      SearchHistory.create({ userId, query: q, category: category || 'all' }).catch(() => {});
+    }
+
+    res.json(response);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -52,4 +60,30 @@ const getTrending = async (req, res) => {
   }
 };
 
-export default { globalSearch, getTrending };
+// GET /history/:userId – return recent search queries
+const getSearchHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 20 } = req.query;
+    const history = await SearchHistory.find({ userId })
+      .sort({ timestamp: -1 })
+      .limit(parseInt(limit))
+      .select('query category timestamp');
+    res.json({ status: 'success', data: history });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// DELETE /history/:userId – clear search history
+const clearSearchHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    await SearchHistory.deleteMany({ userId });
+    res.json({ status: 'success', message: 'Search history cleared' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export default { globalSearch, getTrending, getSearchHistory, clearSearchHistory };

@@ -131,4 +131,77 @@ const getHomeDashboard = async (req, res) => {
   }
 };
 
-export default { getUnifiedProfile, globalSearch, getHomeDashboard };
+// GET /personalised-feed/:userId
+// Combines activity signals from user-activity-service with live content from
+// social, marketplace, ride and food services to return a ranked feed.
+const getPersonalisedFeed = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const authHeader = req.headers['authorization'] || '';
+    const headers = { Authorization: authHeader };
+
+    // 1. Fetch activity signals (fire-and-forget safe: catches errors internally)
+    let feedSignal = { preferredServices: [], preferredCategories: [], recentSearchTerms: [] };
+    try {
+      const signalRes = await axios.get(
+        `${process.env.USER_ACTIVITY_SERVICE_URL}/recommendations/${userId}/feed`,
+        { headers }
+      );
+      if (signalRes.data?.data) feedSignal = signalRes.data.data;
+    } catch { /* activity service may not be reachable in all environments */ }
+
+    const preferredServices = feedSignal.preferredServices || [];
+
+    // 2. Fetch content in parallel based on preference ordering
+    const contentFetches = [
+      // Social feed is always included
+      axios.post(`${process.env.SOCIAL_SERVICE_URL}/feed`, { followingIds: [] }, { headers })
+        .then(r => ({ type: 'social', items: r.data.data || [] }))
+        .catch(() => ({ type: 'social', items: [] })),
+
+      // Marketplace listings
+      axios.get(`${process.env.ADVANCED_MARKETPLACE_SERVICE_URL || process.env.MARKETPLACE_SERVICE_URL}/listings`, { headers })
+        .then(r => ({ type: 'marketplace', items: (r.data.data || r.data || []).slice(0, 10) }))
+        .catch(() => ({ type: 'marketplace', items: [] })),
+
+      // Food restaurants
+      axios.get(`${process.env.FOOD_SERVICE_URL}/restaurants`, { headers })
+        .then(r => ({ type: 'food', items: (r.data.data || r.data || []).slice(0, 5) }))
+        .catch(() => ({ type: 'food', items: [] })),
+
+      // Ride suggestions (recent destinations from activity service)
+      axios.get(`${process.env.USER_ACTIVITY_SERVICE_URL}/activity/${userId}/ride-history`, { headers })
+        .then(r => ({ type: 'ride', items: (r.data.data || []).slice(0, 3) }))
+        .catch(() => ({ type: 'ride', items: [] })),
+    ];
+
+    const results = await Promise.all(contentFetches);
+
+    // 3. Order buckets by user preference; unpreferred services appear last
+    const buckets = {};
+    results.forEach(r => { buckets[r.type] = r.items; });
+
+    const orderedFeed = [
+      ...preferredServices.map(svc => buckets[svc] ? { service: svc, items: buckets[svc] } : null).filter(Boolean),
+      ...Object.entries(buckets)
+        .filter(([svc]) => !preferredServices.includes(svc))
+        .map(([svc, items]) => ({ service: svc, items })),
+    ];
+
+    res.json({
+      status: 'success',
+      data: {
+        feed: orderedFeed,
+        signals: {
+          preferredServices,
+          preferredCategories: feedSignal.preferredCategories,
+          recentSearchTerms: feedSignal.recentSearchTerms,
+        },
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export default { getUnifiedProfile, globalSearch, getHomeDashboard, getPersonalisedFeed };

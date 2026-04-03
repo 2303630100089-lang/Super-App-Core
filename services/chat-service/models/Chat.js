@@ -20,6 +20,8 @@ const chatSchema = new mongoose.Schema({
     whoCanSeeMembers: { type: String, enum: ['everyone', 'adminsOnly'], default: 'everyone' },
     disappearingMessages: { type: Number, default: 0 } // in seconds
   },
+  // AES-256-GCM key (hex) used to encrypt all messages in this chat
+  encryptionKey: { type: String, select: false },
 }, { timestamps: true });
 
 export default mongoose.model('Chat', chatSchema);

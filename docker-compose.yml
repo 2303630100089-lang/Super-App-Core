@@ -78,6 +78,7 @@ services:
       - DEVELOPER_PLATFORM_SERVICE_URL=http://developer-platform-service:5038
       - HOTEL_SERVICE_URL=http://hotel-service:5021
       - ECONOMY_SERVICE_URL=http://economy-service:5022
+      - USER_ACTIVITY_SERVICE_URL=http://user-activity-service:5039
     networks:
       - superapp-network
 
@@ -444,6 +445,20 @@ services:
     networks:
       - superapp-network
 
+  user-activity-service:
+    build: ./services/user-activity-service
+    container_name: superapp-user-activity
+    ports:
+      - "5039:5039"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5039
+      - MONGO_URI=mongodb://mongodb:27017/superapp_user_activity
+    networks:
+      - superapp-network
+
   # ==========================================
   # 11. BUSINESS & PROFESSIONAL SERVICES
   # ==========================================
@@ -519,7 +534,7 @@ services:
         condition: service_healthy
     environment:
       - PORT=5025
-      - MONGO_URI=mongodb://mongodb:27017/superapp
+      - MONGO_URI=mongodb://mongodb:27017/superapp_search
     networks:
       - superapp-network
 
@@ -566,6 +581,7 @@ services:
       - PORT=5020
       - MONGO_URI=mongodb://mongodb:27017/superapp
       - REDIS_URL=redis://redis:6379
+      - USER_ACTIVITY_SERVICE_URL=http://user-activity-service:5039
     networks:
       - superapp-network
 
