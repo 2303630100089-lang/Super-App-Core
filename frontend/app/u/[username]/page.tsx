@@ -199,7 +199,7 @@ export default function UserProfilePage() {
         <div>
           <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Profile Not Found</h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            The user <span className="font-bold text-blue-500">@{username as string}</span> hasn&apos;t set up their profile yet, or this account does not exist.
+            The user <span className="font-bold text-blue-500">@{username as string}</span> hasn't set up their profile yet, or this account does not exist.
           </p>
         </div>
         <div className="flex gap-3 justify-center">
