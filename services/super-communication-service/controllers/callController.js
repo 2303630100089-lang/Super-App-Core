@@ -42,7 +42,10 @@ export const endCall = async (req, res) => {
 
 export const getCallHistory = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId === 'me'
+      ? req.headers['x-user-id']
+      : req.params.userId;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
     const history = await CallLog.find({
       $or: [{ callerId: userId }, { receiverId: userId }, { participants: userId }]
     }).sort({ createdAt: -1 }).limit(50);

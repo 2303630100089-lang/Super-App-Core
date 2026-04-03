@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import useAuthStore from '@/store/useAuthStore'
-import { Plus, Check, Circle, Trash2, Calendar, ChevronLeft, Flag, Clock, Search, X, ListTodo, ArrowUpDown } from 'lucide-react'
+import { getTasks, createTask, updateTask, deleteTask } from '@/services/apiServices'
+import { Plus, Check, Trash2, ChevronLeft, Flag, Clock, Search, X, ListTodo, ArrowUpDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface Task {
-  id: string
+  _id: string
   title: string
   description?: string
   completed: boolean
@@ -25,39 +27,47 @@ const PRIORITY_CONFIG = {
 
 export default function TasksPage() {
   const { user } = useAuthStore()
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: 'Complete API integration for dating module', completed: false, priority: 'high', dueDate: '2026-03-26', list: 'Development', createdAt: new Date().toISOString() },
-    { id: '2', title: 'Review PR for chat service', completed: false, priority: 'urgent', dueDate: '2026-03-25', list: 'Development', createdAt: new Date().toISOString() },
-    { id: '3', title: 'Design calendar UI mockup', completed: true, priority: 'medium', list: 'Design', createdAt: new Date().toISOString() },
-    { id: '4', title: 'Deploy services to production', completed: false, priority: 'high', dueDate: '2026-03-28', list: 'DevOps', createdAt: new Date().toISOString() },
-    { id: '5', title: 'Write unit tests for marketplace', completed: false, priority: 'medium', dueDate: '2026-03-30', list: 'Development', createdAt: new Date().toISOString() },
-    { id: '6', title: 'Fix notification WebSocket sync', completed: false, priority: 'medium', list: 'Development', createdAt: new Date().toISOString() },
-    { id: '7', title: 'Update project documentation', completed: true, priority: 'low', list: 'General', createdAt: new Date().toISOString() },
-  ])
+  const queryClient = useQueryClient()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' as Task['priority'], dueDate: '', list: 'General' })
   const [activeList, setActiveList] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<'priority' | 'date' | 'name'>('priority')
 
-  const lists = ['All', ...Array.from(new Set(tasks.map(t => t.list)))]
+  const { data: tasksData, isLoading } = useQuery({
+    queryKey: ['tasks', user?.id],
+    queryFn: async () => {
+      try {
+        const res = await getTasks()
+        return (res?.data || res || []) as Task[]
+      } catch { return [] as Task[] }
+    },
+    enabled: !!user?.id,
+  })
 
-  const toggleTask = (id: string) => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
-  const deleteTask = (id: string) => setTasks(tasks.filter(t => t.id !== id))
+  const tasks: Task[] = tasksData || []
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => createTask(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] }),
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, completed }: { id: string; completed: boolean }) =>
+      updateTask(id, { completed }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteTask(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', user?.id] }),
+  })
+
+  const lists = ['All', ...Array.from(new Set(tasks.map(t => t.list)))]
 
   const handleCreate = () => {
     if (!newTask.title.trim()) return
-    const task: Task = {
-      id: Date.now().toString(),
-      title: newTask.title,
-      description: newTask.description,
-      completed: false,
-      priority: newTask.priority,
-      dueDate: newTask.dueDate || undefined,
-      list: newTask.list || 'General',
-      createdAt: new Date().toISOString(),
-    }
-    setTasks([task, ...tasks])
+    createMutation.mutate({ ...newTask, dueDate: newTask.dueDate || undefined })
     setShowCreateModal(false)
     setNewTask({ title: '', description: '', priority: 'medium', dueDate: '', list: 'General' })
   }
@@ -122,10 +132,15 @@ export default function TasksPage() {
 
       {/* Task List */}
       <main className="max-w-4xl mx-auto w-full p-4 md:p-6 space-y-2">
-        {filteredTasks.length > 0 ? filteredTasks.map(task => (
-          <div key={task.id} className={`bg-white dark:bg-gray-900 rounded-2xl p-4 border dark:border-gray-800 shadow-sm hover:shadow-md transition-all group ${task.completed ? 'opacity-60' : ''}`}>
+        {isLoading ? (
+          <div className="text-center py-20"><Loader2 className="mx-auto animate-spin text-blue-500" size={28} /></div>
+        ) : filteredTasks.length > 0 ? filteredTasks.map(task => (
+          <div key={task._id} className={`bg-white dark:bg-gray-900 rounded-2xl p-4 border dark:border-gray-800 shadow-sm hover:shadow-md transition-all group ${task.completed ? 'opacity-60' : ''}`}>
             <div className="flex items-start gap-3">
-              <button onClick={() => toggleTask(task.id)} className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all ${task.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 dark:border-gray-600 hover:border-blue-500'}`}>
+              <button
+                onClick={() => toggleMutation.mutate({ id: task._id, completed: !task.completed })}
+                className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all ${task.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 dark:border-gray-600 hover:border-blue-500'}`}
+              >
                 {task.completed && <Check size={14} />}
               </button>
               
@@ -145,7 +160,7 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all">
+              <button onClick={() => deleteMutation.mutate(task._id)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all">
                 <Trash2 size={14} className="text-red-500" />
               </button>
             </div>
@@ -162,7 +177,7 @@ export default function TasksPage() {
       {/* Create Task Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-md border dark:border-gray-700 shadow-2xl space-y-4 animate-in zoom-in-95">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-md border dark:border-gray-700 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-lg dark:text-white">New Task</h3>
               <button onClick={() => setShowCreateModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
@@ -194,8 +209,8 @@ export default function TasksPage() {
               <input value={newTask.list} onChange={e => setNewTask({ ...newTask, list: e.target.value })} placeholder="e.g. Development" className="w-full bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-sm dark:text-white outline-none" />
             </div>
 
-            <button onClick={handleCreate} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 dark:shadow-none active:scale-[0.98]">
-              Create Task
+            <button onClick={handleCreate} disabled={createMutation.isPending} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 dark:shadow-none active:scale-[0.98] disabled:opacity-60">
+              {createMutation.isPending ? 'Creating...' : 'Create Task'}
             </button>
           </div>
         </div>
