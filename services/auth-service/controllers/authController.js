@@ -5,6 +5,9 @@ import qrcode from 'qrcode';
 import User from '../models/User.js';
 import { AppError } from '../utils/errors.js';
 
+// In-memory store for QR login sessions (use Redis in production)
+const qrLoginSessions = new Map();
+
 const generateTokens = (user) => {
   const accessToken = jwt.sign(
     { id: user._id, email: user.email, role: user.role, jti: uuidv4() }, 
@@ -362,5 +365,114 @@ const logout = async (req, res, next) => {
   }
 };
 
-export default { signup, login, refresh, logout, setup2FA, verify2FA, disable2FA, loginVerify2FA, status2FA };
+// ==========================================
+// QR-BASED LOGIN (WeChat-style scan-to-login)
+// ==========================================
+
+/**
+ * Step 1 (Web): Generate a QR token + QR image
+ * The web browser polls /qr-login/status/:token until the mobile app scans it.
+ */
+const generateQRLogin = async (req, res, next) => {
+  try {
+    const token = uuidv4();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    qrLoginSessions.set(token, { status: 'pending', userId: null, expiresAt });
+
+    // Encode the token into a QR image
+    const qrPayload = JSON.stringify({ action: 'qr_login', token });
+    const qrImageDataUrl = await qrcode.toDataURL(qrPayload);
+
+    res.status(200).json({
+      status: 'success',
+      qrToken: token,
+      qrImage: qrImageDataUrl,
+      expiresIn: 300,
+      correlationId: req.correlationId
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Step 2 (Mobile): Authenticated mobile user scans the QR and confirms login
+ */
+const confirmQRLogin = async (req, res, next) => {
+  try {
+    const { qrToken } = req.body;
+    const userId = req.headers['x-user-id'] || req.user?.id;
+
+    if (!qrToken || !userId) {
+      return next(new AppError('qrToken and authenticated user are required', 400));
+    }
+
+    const session = qrLoginSessions.get(qrToken);
+    if (!session) return next(new AppError('QR token not found', 404));
+    if (session.expiresAt < Date.now()) {
+      qrLoginSessions.delete(qrToken);
+      return next(new AppError('QR token has expired', 410));
+    }
+    if (session.status !== 'pending') {
+      return next(new AppError('QR token already used', 400));
+    }
+
+    // Mark as scanned – the web polling endpoint will pick this up
+    qrLoginSessions.set(qrToken, { ...session, status: 'scanned', userId });
+
+    res.status(200).json({ status: 'success', message: 'QR login confirmed', correlationId: req.correlationId });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Step 3 (Web): Poll the status of the QR login token
+ * Returns a full JWT pair once the mobile user has confirmed.
+ */
+const pollQRLogin = async (req, res, next) => {
+  try {
+    const { token } = req.params;
+    const session = qrLoginSessions.get(token);
+
+    if (!session) return next(new AppError('QR token not found', 404));
+    if (session.expiresAt < Date.now()) {
+      qrLoginSessions.delete(token);
+      return next(new AppError('QR token has expired', 410));
+    }
+
+    if (session.status === 'pending') {
+      return res.status(200).json({ status: 'pending', correlationId: req.correlationId });
+    }
+
+    if (session.status === 'scanned') {
+      const user = await User.findById(session.userId);
+      if (!user) return next(new AppError('User not found', 404));
+
+      const { accessToken, refreshToken } = generateTokens(user);
+      user.refreshTokens.push(refreshToken);
+      if (user.refreshTokens.length > 5) user.refreshTokens.shift();
+      await user.save();
+
+      // Clean up session
+      qrLoginSessions.delete(token);
+
+      res.cookie('refreshToken', refreshToken, cookieOptions);
+
+      return res.status(200).json({
+        status: 'success',
+        token: accessToken,
+        userId: user._id,
+        correlationId: req.correlationId
+      });
+    }
+
+    next(new AppError('Unknown QR session state', 500));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export default { signup, login, refresh, logout, setup2FA, verify2FA, disable2FA, loginVerify2FA, status2FA, generateQRLogin, confirmQRLogin, pollQRLogin };
 

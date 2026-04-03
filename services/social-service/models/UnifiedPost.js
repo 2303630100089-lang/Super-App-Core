@@ -23,5 +23,7 @@ const unifiedPostSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 unifiedPostSchema.index({ type: 1, createdAt: -1 });
+unifiedPostSchema.index({ userId: 1, createdAt: -1 });
+unifiedPostSchema.index({ createdAt: -1 });
 
 export default mongoose.model('UnifiedPost', unifiedPostSchema);

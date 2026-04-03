@@ -29,7 +29,7 @@ app.use(morgan('dev'));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 5000,
   message: { status: 'fail', message: 'Too many requests' }
 });
 app.use(limiter);
@@ -57,7 +57,12 @@ app.use(handleErrors);
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      maxPoolSize: 100,
+      minPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
     console.log('MongoDB Connected');
   } catch (err) {
     console.error(err.message);

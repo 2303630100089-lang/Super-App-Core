@@ -251,7 +251,7 @@ export const getJobApplications = async (jobId: string) => {
 // NOTIFICATIONS
 // ==========================================
 export const getNotifications = async (userId: string) => {
-  const { data } = await api.get(`/notifications?userId=${userId}`);
+  const { data } = await api.get(`/notifications/${userId}`);
   return data;
 };
 

@@ -131,10 +131,11 @@ const getSettings = async (req, res, next) => {
     const userId = req.headers['x-user-id'] || req.query.userId;
     if (!userId) return res.status(400).json({ status: 'fail', message: 'User ID is required' });
 
-    let settings = await UserSettings.findOne({ userId });
-    if (!settings) {
-      settings = await UserSettings.create({ userId });
-    }
+    const settings = await UserSettings.findOneAndUpdate(
+      { userId },
+      { $setOnInsert: { userId } },
+      { upsert: true, new: true }
+    );
     res.json({ status: 'success', data: settings, correlationId: req.correlationId });
   } catch (err) {
     next(err);
@@ -148,19 +149,21 @@ const updateSettings = async (req, res, next) => {
 
     const { permissions, theme, language, onboardingCompleted } = req.body;
 
-    let settings = await UserSettings.findOne({ userId });
-    if (!settings) {
-      settings = new UserSettings({ userId });
-    }
-
+    const update = {};
     if (permissions) {
-      settings.permissions = { ...settings.permissions.toObject(), ...permissions };
+      Object.entries(permissions).forEach(([key, value]) => {
+        update[`permissions.${key}`] = value;
+      });
     }
-    if (theme) settings.theme = theme;
-    if (language) settings.language = language;
-    if (onboardingCompleted !== undefined) settings.onboardingCompleted = onboardingCompleted;
+    if (theme) update.theme = theme;
+    if (language) update.language = language;
+    if (onboardingCompleted !== undefined) update.onboardingCompleted = onboardingCompleted;
 
-    await settings.save();
+    const settings = await UserSettings.findOneAndUpdate(
+      { userId },
+      { $set: update },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
     res.json({ status: 'success', data: settings, correlationId: req.correlationId });
   } catch (err) {
     next(err);

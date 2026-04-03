@@ -1,7 +1,9 @@
 version: '3.8'
 
 services:
+  # ==========================================
   # 1. CORE DATABASES
+  # ==========================================
   mongodb:
     image: mongo:6.0
     container_name: superapp-mongodb
@@ -11,6 +13,11 @@ services:
       - mongo-data:/data/db
     networks:
       - superapp-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7.0-alpine
@@ -19,10 +26,17 @@ services:
       - "6379:6379"
     networks:
       - superapp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # 2. API GATEWAY (Entry point for frontend)
+  # ==========================================
+  # 2. API GATEWAY (Single entry point)
+  # ==========================================
   api-gateway:
-    build: 
+    build:
       context: ./api-gateway
       dockerfile: Dockerfile
     container_name: superapp-gateway
@@ -30,56 +44,510 @@ services:
       - "5050:5050"
     depends_on:
       - auth-service
+      - user-service
     environment:
       - NODE_ENV=production
+      - PORT=5050
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+      - REDIS_URL=redis://redis:6379
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      - USER_SERVICE_URL=http://user-service:5002
+      - CHAT_SERVICE_URL=http://chat-service:5003
+      - SOCIAL_SERVICE_URL=http://social-service:5004
+      - PROFESSIONAL_SERVICE_URL=http://professional-service:5006
+      - DATING_SERVICE_URL=http://dating-service:5007
+      - MARKETPLACE_SERVICE_URL=http://marketplace-service:5008
+      - RIDE_SERVICE_URL=http://ride-service:5009
+      - FOOD_SERVICE_URL=http://food-service:5010
+      - PRODUCTIVITY_SERVICE_URL=http://productivity-service:5011
+      - GAME_SERVICE_URL=http://game-service:5012
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5013
+      - DASHBOARD_SERVICE_URL=http://dashboard-service:5024
+      - GLOBAL_SEARCH_SERVICE_URL=http://global-search-service:5025
+      - MONETIZATION_SERVICE_URL=http://monetization-service:5026
+      - SETTINGS_SERVICE_URL=http://settings-service:5027
+      - SUPER_COMMUNICATION_SERVICE_URL=http://super-communication-service:5028
+      - ADVANCED_INTERACTIONS_SERVICE_URL=http://advanced-interactions-service:5029
+      - SNAP_SERVICE_URL=http://snap-service:5031
+      - PAYMENT_SERVICE_URL=http://payment-service:5032
+      - AI_SERVICE_URL=http://ai-service:5033
+      - BUSINESS_DASHBOARD_SERVICE_URL=http://business-dashboard-service:5034
+      - CART_SERVICE_URL=http://cart-service:5035
+      - ORDER_SERVICE_URL=http://order-service:5036
+      - MINI_APP_SERVICE_URL=http://mini-app-service:5016
+      - DEVELOPER_PLATFORM_SERVICE_URL=http://developer-platform-service:5038
+      - HOTEL_SERVICE_URL=http://hotel-service:5021
+      - ECONOMY_SERVICE_URL=http://economy-service:5022
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 3. IDENTITY & AUTH SERVICES
+  # ==========================================
+  auth-service:
+    build: ./services/auth-service
+    container_name: superapp-auth
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5001
+      - MONGO_URI=mongodb://mongodb:27017/superapp_auth
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-super_refresh_secret}
+      - NODE_ENV=production
+    networks:
+      - superapp-network
+
+  user-service:
+    build: ./services/user-service
+    container_name: superapp-user
+    ports:
+      - "5002:5002"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5002
+      - MONGO_URI=mongodb://mongodb:27017/superapp_users
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 4. COMMUNICATION SERVICES
+  # ==========================================
+  chat-service:
+    build: ./services/chat-service
+    container_name: superapp-chat
+    ports:
+      - "5003:5003"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - PORT=5003
+      - MONGO_URI=mongodb://mongodb:27017/superapp_chat
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
       - REDIS_URL=redis://redis:6379
     networks:
       - superapp-network
 
-  # 3. CORE MICROSERVICES
-  auth-service:
-    build: ./services/auth-service
-    container_name: superapp-auth
-    depends_on: [mongodb]
+  super-communication-service:
+    build: ./services/super-communication-service
+    container_name: superapp-super-comm
+    ports:
+      - "5028:5028"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/superapp
-      - JWT_SECRET=super_secret_docker_key
+      - PORT=5028
+      - MONGO_URI=mongodb://mongodb:27017/superapp_super_comm
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
     networks:
       - superapp-network
 
+  notification-service:
+    build: ./services/notification-service
+    container_name: superapp-notifications
+    ports:
+      - "5013:5013"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5013
+      - MONGO_URI=mongodb://mongodb:27017/superapp_notifications
+    networks:
+      - superapp-network
+
+  snap-service:
+    build: ./services/snap-service
+    container_name: superapp-snap
+    ports:
+      - "5031:5031"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5031
+      - MONGO_URI=mongodb://mongodb:27017/superapp_snap
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 5. SOCIAL & COMMUNITY SERVICES
+  # ==========================================
   social-service:
     build: ./services/social-service
     container_name: superapp-social
-    depends_on: [mongodb]
+    ports:
+      - "5004:5004"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/superapp
+      - PORT=5004
+      - MONGO_URI=mongodb://mongodb:27017/superapp_social
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
     networks:
       - superapp-network
 
+  advanced-interactions-service:
+    build: ./services/advanced-interactions-service
+    container_name: superapp-advanced-interactions
+    ports:
+      - "5029:5029"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5029
+      - MONGO_URI=mongodb://mongodb:27017/superapp_interactions
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  story-service:
+    build: ./services/story-service
+    container_name: superapp-story
+    ports:
+      - "5030:5030"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5030
+      - MONGO_URI=mongodb://mongodb:27017/superapp_stories
+    networks:
+      - superapp-network
+
+  dating-service:
+    build: ./services/dating-service
+    container_name: superapp-dating
+    ports:
+      - "5007:5007"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5007
+      - MONGO_URI=mongodb://mongodb:27017/superapp_dating
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 6. MARKETPLACE & COMMERCE SERVICES
+  # ==========================================
+  marketplace-service:
+    build: ./services/marketplace-service
+    container_name: superapp-marketplace
+    ports:
+      - "5008:5008"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5008
+      - MONGO_URI=mongodb://mongodb:27017/superapp_marketplace
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  cart-service:
+    build: ./services/cart-service
+    container_name: superapp-cart
+    ports:
+      - "5035:5035"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5035
+      - MONGO_URI=mongodb://mongodb:27017/superapp_cart
+    networks:
+      - superapp-network
+
+  order-service:
+    build: ./services/order-service
+    container_name: superapp-orders
+    ports:
+      - "5036:5036"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5036
+      - MONGO_URI=mongodb://mongodb:27017/superapp_orders
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 7. ON-DEMAND ECONOMY SERVICES
+  # ==========================================
+  ride-service:
+    build: ./services/ride-service
+    container_name: superapp-ride
+    ports:
+      - "5009:5009"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5009
+      - MONGO_URI=mongodb://mongodb:27017/superapp_rides
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  food-service:
+    build: ./services/food-service
+    container_name: superapp-food
+    ports:
+      - "5010:5010"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5010
+      - MONGO_URI=mongodb://mongodb:27017/superapp_food
+    networks:
+      - superapp-network
+
+  hotel-service:
+    build: ./services/hotel-service
+    container_name: superapp-hotel
+    ports:
+      - "5021:5021"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5021
+      - MONGO_URI=mongodb://mongodb:27017/superapp_hotels
+    networks:
+      - superapp-network
+
+  economy-service:
+    build: ./services/economy-service
+    container_name: superapp-economy
+    ports:
+      - "5022:5022"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5022
+      - MONGO_URI=mongodb://mongodb:27017/superapp_economy
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 8. PAYMENT & WALLET SERVICES
+  # ==========================================
+  payment-service:
+    build: ./services/payment-service
+    container_name: superapp-payment
+    ports:
+      - "5032:5032"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5032
+      - MONGO_URI=mongodb://mongodb:27017/superapp_payments
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 9. MINI APP PLATFORM SERVICES
+  # ==========================================
+  mini-app-service:
+    build: ./services/mini-app-service
+    container_name: superapp-miniapp
+    ports:
+      - "5016:5016"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5016
+      - MONGO_URI=mongodb://mongodb:27017/superapp_miniapps
+    networks:
+      - superapp-network
+
+  developer-platform-service:
+    build: ./services/developer-platform-service
+    container_name: superapp-developer-platform
+    ports:
+      - "5038:5038"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5038
+      - MONGO_URI=mongodb://mongodb:27017/superapp_developer
+    networks:
+      - superapp-network
+
+  game-service:
+    build: ./services/game-service
+    container_name: superapp-games
+    ports:
+      - "5012:5012"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5012
+      - MONGO_URI=mongodb://mongodb:27017/superapp_games
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 10. AI & ANALYTICS SERVICES
+  # ==========================================
   ai-service:
     build: ./services/ai-service
     container_name: superapp-ai
-    depends_on: [mongodb]
+    ports:
+      - "5033:5033"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/superapp
+      - PORT=5033
+      - MONGO_URI=mongodb://mongodb:27017/superapp_ai
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     networks:
       - superapp-network
 
-  ride-service:
-    build: ./services/ride-service
-    container_name: superapp-ride
-    depends_on: [mongodb]
+  analytics-service:
+    build: ./services/analytics-service
+    container_name: superapp-analytics
+    ports:
+      - "5037:5037"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/superapp
+      - PORT=5037
+      - MONGO_URI=mongodb://mongodb:27017/superapp_analytics
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 11. BUSINESS & PROFESSIONAL SERVICES
+  # ==========================================
+  professional-service:
+    build: ./services/professional-service
+    container_name: superapp-professional
+    ports:
+      - "5006:5006"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5006
+      - MONGO_URI=mongodb://mongodb:27017/superapp_professional
+    networks:
+      - superapp-network
+
+  business-dashboard-service:
+    build: ./services/business-dashboard-service
+    container_name: superapp-business-dashboard
+    ports:
+      - "5034:5034"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5034
+      - MONGO_URI=mongodb://mongodb:27017/superapp_business
     networks:
       - superapp-network
 
   monetization-service:
     build: ./services/monetization-service
     container_name: superapp-monetization
-    depends_on: [mongodb]
+    ports:
+      - "5026:5026"
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
+      - PORT=5026
+      - MONGO_URI=mongodb://mongodb:27017/superapp_monetization
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 12. PRODUCTIVITY SERVICES
+  # ==========================================
+  productivity-service:
+    build: ./services/productivity-service
+    container_name: superapp-productivity
+    ports:
+      - "5011:5011"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5011
+      - MONGO_URI=mongodb://mongodb:27017/superapp_productivity
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 13. UTILITY SERVICES
+  # ==========================================
+  global-search-service:
+    build: ./services/global-search-service
+    container_name: superapp-search
+    ports:
+      - "5025:5025"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5025
+      - MONGO_URI=mongodb://mongodb:27017/superapp
+    networks:
+      - superapp-network
+
+  settings-service:
+    build: ./services/settings-service
+    container_name: superapp-settings
+    ports:
+      - "5027:5027"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5027
+      - MONGO_URI=mongodb://mongodb:27017/superapp_settings
+      - JWT_SECRET=${JWT_SECRET:-super_secret_for_super_app}
+    networks:
+      - superapp-network
+
+  dashboard-service:
+    build: ./services/dashboard-service
+    container_name: superapp-dashboard
+    ports:
+      - "5024:5024"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5024
       - MONGO_URI=mongodb://mongodb:27017/superapp
     networks:
       - superapp-network
@@ -87,14 +555,79 @@ services:
   aggregator-service:
     build: ./services/aggregator-service
     container_name: superapp-aggregator
-    depends_on: [mongodb, redis]
+    ports:
+      - "5020:5020"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
+      - PORT=5020
       - MONGO_URI=mongodb://mongodb:27017/superapp
+      - REDIS_URL=redis://redis:6379
     networks:
       - superapp-network
 
-  # Note: A real production system would list all 39 microservices here using a dynamic shell script or K8s Helm charts. 
-  # This serves as our master compose architecture blueprint.
+  community-service:
+    build: ./services/community-service
+    container_name: superapp-community
+    ports:
+      - "5015:5015"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5015
+      - MONGO_URI=mongodb://mongodb:27017/superapp_community
+    networks:
+      - superapp-network
+
+  discord-service:
+    build: ./services/discord-service
+    container_name: superapp-discord
+    ports:
+      - "5017:5017"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5017
+      - MONGO_URI=mongodb://mongodb:27017/superapp_discord
+    networks:
+      - superapp-network
+
+  group-chat-service:
+    build: ./services/group-chat-service
+    container_name: superapp-group-chat
+    ports:
+      - "5018:5018"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - PORT=5018
+      - MONGO_URI=mongodb://mongodb:27017/superapp_group_chat
+    networks:
+      - superapp-network
+
+  # ==========================================
+  # 14. FRONTEND (Next.js)
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: superapp-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api-gateway:5050/api
+      - NODE_ENV=production
+    networks:
+      - superapp-network
 
 networks:
   superapp-network:

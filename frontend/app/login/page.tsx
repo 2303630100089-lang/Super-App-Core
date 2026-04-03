@@ -41,7 +41,7 @@ export default function LoginPage() {
           console.error("Could not fetch profile", profileErr)
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed')
+      setError(err.message || 'Login failed')
     }
   }
 
@@ -136,6 +136,12 @@ export default function LoginPage() {
           Don&apos;t have an account?{' '}
           <Link href="/register" className="font-bold text-cyan-300 transition hover:text-cyan-200 hover:underline">
             Sign up for free
+          </Link>
+        </p>
+        <p className="mt-3 text-center text-sm font-medium text-slate-400">
+          Or{' '}
+          <Link href="/login/qr" className="font-bold text-cyan-300 transition hover:text-cyan-200 hover:underline">
+            Scan QR code to log in
           </Link>
         </p>
       </div>

@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import clsx from 'clsx'
 import { useState, useEffect } from 'react'
+import OfflineBanner from '@/components/OfflineBanner'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, logout, isReady } = useAuth()
@@ -173,6 +174,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           )
         })}
       </nav>
+
+      <OfflineBanner />
     </div>
   )
 }

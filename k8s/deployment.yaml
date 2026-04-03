@@ -1,0 +1,606 @@
+# SuperApp Kubernetes Deployment Manifests
+# Production-ready K8s configuration for the WeChat-like SuperApp ecosystem
+#
+# Usage:
+#   kubectl apply -f k8s/
+#
+# Prerequisites:
+#   - kubectl configured with a cluster
+#   - MongoDB Atlas URI and secrets configured
+#   - Docker images built and pushed to a registry
+
+---
+# ==========================================
+# NAMESPACE
+# ==========================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: superapp
+  labels:
+    app: superapp
+
+---
+# ==========================================
+# SECRETS (replace values with base64-encoded secrets)
+# kubectl create secret generic superapp-secrets \
+#   --from-literal=JWT_SECRET=your-jwt-secret \
+#   --from-literal=MONGO_URI=mongodb+srv://... \
+#   --from-literal=GEMINI_API_KEY=your-gemini-key \
+#   -n superapp
+# ==========================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: superapp-secrets
+  namespace: superapp
+type: Opaque
+stringData:
+  JWT_SECRET: "super_secret_for_super_app"
+  JWT_REFRESH_SECRET: "super_refresh_secret"
+  MONGO_URI: "mongodb://mongodb:27017/superapp"
+  GEMINI_API_KEY: ""
+  REDIS_URL: "redis://redis:6379"
+
+---
+# ==========================================
+# CONFIGMAP – shared environment config
+# ==========================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: superapp-config
+  namespace: superapp
+data:
+  NODE_ENV: "production"
+  AUTH_SERVICE_URL: "http://auth-service:5001"
+  USER_SERVICE_URL: "http://user-service:5002"
+  CHAT_SERVICE_URL: "http://chat-service:5003"
+  SOCIAL_SERVICE_URL: "http://social-service:5004"
+  PAYMENT_SERVICE_URL: "http://payment-service:5032"
+  MINI_APP_SERVICE_URL: "http://mini-app-service:5016"
+  DEVELOPER_PLATFORM_SERVICE_URL: "http://developer-platform-service:5038"
+  AI_SERVICE_URL: "http://ai-service:5033"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:5013"
+  RIDE_SERVICE_URL: "http://ride-service:5009"
+  FOOD_SERVICE_URL: "http://food-service:5010"
+  MARKETPLACE_SERVICE_URL: "http://marketplace-service:5008"
+  CART_SERVICE_URL: "http://cart-service:5035"
+  ORDER_SERVICE_URL: "http://order-service:5036"
+  MONETIZATION_SERVICE_URL: "http://monetization-service:5026"
+  SUPER_COMMUNICATION_SERVICE_URL: "http://super-communication-service:5028"
+  GLOBAL_SEARCH_SERVICE_URL: "http://global-search-service:5025"
+  SETTINGS_SERVICE_URL: "http://settings-service:5027"
+  DATING_SERVICE_URL: "http://dating-service:5007"
+  PROFESSIONAL_SERVICE_URL: "http://professional-service:5006"
+  PRODUCTIVITY_SERVICE_URL: "http://productivity-service:5011"
+  ADVANCED_INTERACTIONS_SERVICE_URL: "http://advanced-interactions-service:5029"
+  SNAP_SERVICE_URL: "http://snap-service:5031"
+  BUSINESS_DASHBOARD_SERVICE_URL: "http://business-dashboard-service:5034"
+  HOTEL_SERVICE_URL: "http://hotel-service:5021"
+  GAME_SERVICE_URL: "http://game-service:5012"
+  DASHBOARD_SERVICE_URL: "http://dashboard-service:5024"
+
+---
+# ==========================================
+# API GATEWAY
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: superapp
+  labels:
+    app: api-gateway
+    tier: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        tier: gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: superapp/api-gateway:latest
+          ports:
+            - containerPort: 5050
+          envFrom:
+            - configMapRef:
+                name: superapp-config
+            - secretRef:
+                name: superapp-secrets
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5050
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: superapp
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - port: 5050
+      targetPort: 5050
+  type: LoadBalancer
+
+---
+# ==========================================
+# AUTH SERVICE
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: superapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          image: superapp/auth-service:latest
+          ports:
+            - containerPort: 5001
+          env:
+            - name: PORT
+              value: "5001"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: MONGO_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: JWT_SECRET
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: JWT_REFRESH_SECRET
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5001
+            initialDelaySeconds: 10
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: superapp
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - port: 5001
+      targetPort: 5001
+
+---
+# ==========================================
+# CHAT SERVICE (WebSocket)
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-service
+  namespace: superapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chat-service
+  template:
+    metadata:
+      labels:
+        app: chat-service
+    spec:
+      containers:
+        - name: chat-service
+          image: superapp/chat-service:latest
+          ports:
+            - containerPort: 5003
+          env:
+            - name: PORT
+              value: "5003"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: MONGO_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: JWT_SECRET
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: REDIS_URL
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-service
+  namespace: superapp
+spec:
+  selector:
+    app: chat-service
+  ports:
+    - port: 5003
+      targetPort: 5003
+  # Sticky sessions needed for WebSocket
+  sessionAffinity: ClientIP
+
+---
+# ==========================================
+# PAYMENT SERVICE (critical – higher replicas)
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: superapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+        - name: payment-service
+          image: superapp/payment-service:latest
+          ports:
+            - containerPort: 5032
+          env:
+            - name: PORT
+              value: "5032"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: MONGO_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: JWT_SECRET
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: superapp
+spec:
+  selector:
+    app: payment-service
+  ports:
+    - port: 5032
+      targetPort: 5032
+
+---
+# ==========================================
+# MINI APP SERVICE
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-app-service
+  namespace: superapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mini-app-service
+  template:
+    metadata:
+      labels:
+        app: mini-app-service
+    spec:
+      containers:
+        - name: mini-app-service
+          image: superapp/mini-app-service:latest
+          ports:
+            - containerPort: 5016
+          env:
+            - name: PORT
+              value: "5016"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: MONGO_URI
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mini-app-service
+  namespace: superapp
+spec:
+  selector:
+    app: mini-app-service
+  ports:
+    - port: 5016
+      targetPort: 5016
+
+---
+# ==========================================
+# DEVELOPER PLATFORM SERVICE
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: developer-platform-service
+  namespace: superapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: developer-platform-service
+  template:
+    metadata:
+      labels:
+        app: developer-platform-service
+    spec:
+      containers:
+        - name: developer-platform-service
+          image: superapp/developer-platform-service:latest
+          ports:
+            - containerPort: 5038
+          env:
+            - name: PORT
+              value: "5038"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: MONGO_URI
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: developer-platform-service
+  namespace: superapp
+spec:
+  selector:
+    app: developer-platform-service
+  ports:
+    - port: 5038
+      targetPort: 5038
+
+---
+# ==========================================
+# AI SERVICE
+# ==========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+  namespace: superapp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+    spec:
+      containers:
+        - name: ai-service
+          image: superapp/ai-service:latest
+          ports:
+            - containerPort: 5033
+          env:
+            - name: PORT
+              value: "5033"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: MONGO_URI
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: superapp-secrets
+                  key: GEMINI_API_KEY
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+  namespace: superapp
+spec:
+  selector:
+    app: ai-service
+  ports:
+    - port: 5033
+      targetPort: 5033
+
+---
+# ==========================================
+# HORIZONTAL POD AUTOSCALER (HPA)
+# Scale chat and payment services based on CPU
+# ==========================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: chat-service-hpa
+  namespace: superapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: chat-service
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: payment-service-hpa
+  namespace: superapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: payment-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: superapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+---
+# ==========================================
+# INGRESS (Nginx or cloud LB)
+# ==========================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: superapp-ingress
+  namespace: superapp
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # WebSocket support
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.superapp.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 5050
+    - host: superapp.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000

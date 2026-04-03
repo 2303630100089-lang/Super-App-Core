@@ -16,4 +16,9 @@ router.post('/2fa/disable', authenticateToken, authController.disable2FA);
 router.post('/2fa/login-verify', authController.loginVerify2FA);
 router.get('/2fa/status', authenticateToken, authController.status2FA);
 
+// QR-based Login Routes (WeChat-style scan-to-login)
+router.post('/qr-login/generate', authController.generateQRLogin);
+router.post('/qr-login/confirm', authenticateToken, authController.confirmQRLogin);
+router.get('/qr-login/status/:token', authController.pollQRLogin);
+
 export default router;
