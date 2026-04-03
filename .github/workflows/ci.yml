@@ -36,6 +36,52 @@ jobs:
           JWT_REFRESH_SECRET: test_refresh_secret
 
   # ==========================================
+  # USER SERVICE TESTS (unit + load simulation)
+  # ==========================================
+  test-user-service:
+    name: Test – user-service
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: services/user-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/user-service/package-lock.json
+      - run: npm ci
+      - run: npm test
+        env:
+          NODE_ENV: test
+
+  # ==========================================
+  # SOCIAL SERVICE TESTS (feed + behavior + load)
+  # ==========================================
+  test-social-service:
+    name: Test – social-service
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: services/social-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/social-service/package-lock.json
+      - run: npm ci
+      - run: npm test
+        env:
+          NODE_ENV: test
+
+  # ==========================================
   # FRONTEND BUILD
   # ==========================================
   build-frontend:
