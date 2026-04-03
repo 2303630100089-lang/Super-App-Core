@@ -79,13 +79,19 @@ async function nominatimSearch(query: string): Promise<LocationPin[]> {
   try {
     const url =
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&countrycodes=in`
-    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+    const res = await fetch(url, {
+      headers: {
+        'Accept-Language': 'en',
+        'User-Agent': 'SuperApp/1.0 (ride-booking)',
+      },
+    })
     const results: NominatimResult[] = await res.json()
     return results.map(r => ({
       label: r.display_name.split(',').slice(0, 2).join(', '),
       coords: [parseFloat(r.lat), parseFloat(r.lon)] as [number, number],
     }))
-  } catch {
+  } catch (err) {
+    console.error('Nominatim geocoding failed:', err)
     return []
   }
 }
@@ -225,7 +231,15 @@ export default function RidesPage() {
       setMatchingStatus('Searching for drivers...')
       return
     }
-    const timer = setInterval(() => setProgress(p => (p >= 100 ? (clearInterval(timer), 100) : p + 2)), 50)
+    const timer = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) {
+          clearInterval(timer)
+          return 100
+        }
+        return p + 2
+      })
+    }, 50)
     const t1 = setTimeout(() => setMatchingStatus('3 drivers notified...'), 800)
     const t2 = setTimeout(() => setMatchingStatus('Driver Raj Singh accepted your request!'), 2000)
     return () => { clearInterval(timer); clearTimeout(t1); clearTimeout(t2) }
@@ -410,7 +424,11 @@ export default function RidesPage() {
               <div>
                 <p className="font-black text-sm text-blue-700 dark:text-blue-300">Use Current Location</p>
                 <p className="text-[10px] text-blue-500 font-bold mt-0.5">
-                  {gpsError ?? (userLocation ? `${userLocation[0].toFixed(4)}, ${userLocation[1].toFixed(4)}` : 'Tap to get GPS position')}
+                  {gpsError
+                    ? gpsError
+                    : userLocation
+                      ? `${userLocation[0].toFixed(4)}, ${userLocation[1].toFixed(4)}`
+                      : 'Tap to get GPS position'}
                 </p>
               </div>
             </button>
