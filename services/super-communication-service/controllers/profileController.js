@@ -162,6 +162,40 @@ export const getFollowing = async (req, res) => {
   }
 };
 
+export const getFriends = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    // Friends = users who mutually follow each other
+    const following = await Follower.find({ followerId: userId }).lean();
+    const followingIds = following.map((f) => f.followingId);
+
+    if (followingIds.length === 0) return res.json([]);
+
+    // Find which of those are also following back
+    const mutualFollows = await Follower.find({
+      followerId: { $in: followingIds },
+      followingId: userId
+    }).lean();
+
+    const friendIds = mutualFollows.map((f) => f.followerId);
+    if (friendIds.length === 0) return res.json([]);
+
+    const profiles = await AdvancedProfile.find({ userId: { $in: friendIds } }).lean();
+    const enriched = profiles.map((p) => ({
+      userId: p.userId,
+      username: p.username,
+      avatar: p.avatar || '',
+      uniqueId: p.uniqueId,
+      bio: p.bio || '',
+      followersCount: p.followersCount || 0,
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const getPeopleYouMayKnow = async (req, res) => {
   try {
     const { userId } = req.params;
