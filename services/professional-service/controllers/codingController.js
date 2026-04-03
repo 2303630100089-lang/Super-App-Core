@@ -45,7 +45,8 @@ export const getDiscussions = async (req, res) => {
 
 export const createDiscussion = async (req, res) => {
   try {
-    const authorId = req.headers['x-user-id'] || req.body.authorId;
+    const authorId = String(req.headers['x-user-id'] || '');
+    if (!authorId) return res.status(401).json({ error: 'Authentication required' });
     const { authorName, authorAvatar, topic, title, content, tags } = req.body;
     if (!ALLOWED_TOPICS.has(String(topic))) {
       return res.status(400).json({ error: 'Invalid topic' });

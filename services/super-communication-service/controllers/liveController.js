@@ -15,9 +15,9 @@ export const getStreams = async (req, res) => {
 
 export const startStream = async (req, res) => {
   try {
-    const hostId = String(req.headers['x-user-id'] || req.body.hostId || '');
+    const hostId = String(req.headers['x-user-id'] || '');
     const { hostName, hostAvatar, title, category } = req.body;
-    if (!hostId) return res.status(400).json({ error: 'hostId required' });
+    if (!hostId) return res.status(400).json({ error: 'Authentication required' });
 
     // End any existing live stream for this host
     await LiveStream.updateMany({ hostId, isLive: true }, { isLive: false, endedAt: new Date() });
