@@ -38,7 +38,6 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
   
   // Reel / Schedule / Draft
   const [isReel, setIsReel] = useState(false)
-  const [isDraft, setIsDraft] = useState(false)
   const [scheduledAt, setScheduledAt] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public')
 
@@ -94,7 +93,7 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
     }
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (asDraft = false) => {
     const postData: any = {
       type: postType,
       content,
@@ -102,7 +101,7 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
       mentions: mentions.split(',').filter(m => m.trim()).map(m => m.trim().replace('@', '')),
       media: media.map(m => ({ url: m, mediaType: postType === 'video' ? 'video' : 'image' })),
       isReel: postType === 'video' ? isReel : false,
-      isDraft,
+      isDraft: asDraft,
       visibility,
       ...(scheduledAt ? { scheduledAt } : {}),
     }
@@ -147,7 +146,6 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
       setPollOptions(['Option 1', 'Option 2'])
       setPostType('text')
       setIsReel(false)
-      setIsDraft(false)
       setScheduledAt('')
       setVisibility('public')
       onClose()
@@ -479,14 +477,14 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
             Cancel
           </button>
           <button
-            onClick={() => { setIsDraft(true); handleSubmit() }}
+            onClick={() => handleSubmit(true)}
             disabled={isLoading || uploadingMedia || !canSubmit}
             className="px-4 py-2 bg-[var(--bg-elevated)] border border-gray-200/20 dark:border-gray-800/40 text-[var(--text-primary)] rounded-lg font-bold hover:brightness-110 transition-all disabled:opacity-50 active:scale-95"
           >
             Save Draft
           </button>
           <button
-            onClick={() => { setIsDraft(false); handleSubmit() }}
+            onClick={() => handleSubmit(false)}
             disabled={isLoading || uploadingMedia || !canSubmit}
             className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:brightness-110 transition-all disabled:opacity-50 active:scale-95"
           >

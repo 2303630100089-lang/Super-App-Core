@@ -184,7 +184,8 @@ const getFeed = async (req, res) => {
     const { followingIds, page = 1, limit = 30, sort = 'recent', communityId, filterType } = req.body;
     
     const now = new Date();
-    const filter = { isReel: false, isDraft: { $ne: true }, $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }] };
+    const notScheduledOrReady = { $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }] };
+    const filter = { isReel: false, isDraft: { $ne: true }, ...notScheduledOrReady };
     if (followingIds && followingIds.length > 0) {
       filter.userId = { $in: followingIds };
     }

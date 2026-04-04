@@ -188,12 +188,12 @@ export default function ReelsPage() {
 
   // Load more when near end
   useEffect(() => {
-    if (activeIndex >= reels.length - 2) {
+    if (activeIndex >= reels.length - 2 && reels.length > 0) {
       const nextPage = page + 1
       setPage(nextPage)
       fetchReels(nextPage)
     }
-  }, [activeIndex, reels.length])
+  }, [activeIndex, reels.length, page, fetchReels])
 
   const handleLike = async (reelId: string) => {
     try {

@@ -177,8 +177,12 @@ export default function SocialFeedPage() {
             <div className="w-20 h-20 bg-[var(--bg-elevated)] rounded-3xl flex items-center justify-center mx-auto text-[var(--syn-comment)] shadow-lg">
               <Search size={48} />
             </div>
-            <p className="text-[var(--syn-comment)] font-bold text-sm uppercase tracking-wide">No posts found</p>
-            <p className="text-[var(--syn-comment)] text-xs opacity-70">Be the first to post something amazing! 🚀</p>
+            <p className="text-[var(--syn-comment)] font-bold text-sm uppercase tracking-wide">
+              {searchQuery ? `No posts match "${searchQuery}"` : 'No posts found'}
+            </p>
+            <p className="text-[var(--syn-comment)] text-xs opacity-70">
+              {searchQuery ? 'Try a different search term.' : 'Be the first to post something amazing! 🚀'}
+            </p>
           </div>
         )}
       </div>
