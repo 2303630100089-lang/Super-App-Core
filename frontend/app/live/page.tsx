@@ -45,6 +45,9 @@ export default function LivePage() {
   const [streamTitle, setStreamTitle] = useState('')
   const [streamCategory, setStreamCategory] = useState('General')
   const [activeStreamId, setActiveStreamId] = useState<string | null>(null)
+  const [toast, setToast] = useState('')
+
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   const { data: streamsData, isLoading } = useQuery({
     queryKey: ['live-streams', activeCategory],
@@ -82,8 +85,9 @@ export default function LivePage() {
   }
 
   const handleWatchStream = async (stream: LiveStream) => {
+    if (!user) { showToast('Please sign in to watch streams'); return }
     setSelectedStream(stream)
-    try { await joinLiveStream(stream._id) } catch (err) { console.error('Failed to join stream:', err) }
+    try { await joinLiveStream(stream._id) } catch (err) { console.error('Failed to join stream:', err); showToast('Could not join stream. Watching in view-only mode.') }
   }
 
   const handleLeaveStream = async () => {
@@ -275,6 +279,13 @@ export default function LivePage() {
           </div>
         )}
       </main>
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50 animate-fade-in">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

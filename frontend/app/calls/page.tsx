@@ -29,6 +29,9 @@ export default function CallsPage() {
   const [isSpeaker, setIsSpeaker] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
   const [activeCall, setActiveCall] = useState<{ name: string; avatar: string; type: 'voice' | 'video' } | null>(null)
+  const [toast, setToast] = useState('')
+
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
   const { data: callLogs = [], isLoading } = useQuery({
     queryKey: ['call-history', user?.id],
@@ -80,7 +83,7 @@ export default function CallsPage() {
   }, [callState])
 
   const initiateCall = (name: string, avatar: string, type: 'voice' | 'video', receiverId?: string) => {
-    if (!receiverId) return
+    if (!receiverId) { showToast('Cannot initiate call: recipient not found'); return }
     setActiveCall({ name, avatar, type })
     setCallState('ringing')
     setCallDuration(0)
@@ -255,6 +258,13 @@ export default function CallsPage() {
           )
         })}
       </main>
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg z-50">
+          {toast}
+        </div>
+      )}
     </div>
   )
 }
