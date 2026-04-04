@@ -33,6 +33,24 @@ export default function BookmarksPage() {
     } catch (e) {}
   }
 
+  const handleRepost = async (postId: string) => {
+    try {
+      await api.post('/social/posts/repost', { postId, userId: user?.id })
+    } catch (e) { console.error(e) }
+  }
+
+  const handleShare = async (postId: string, targetUserIds: string[]) => {
+    try {
+      await api.post('/social/posts/share', { postId, userId: user?.id, targetUserIds })
+    } catch (e) { console.error(e) }
+  }
+
+  const handleReport = async (postId: string, reason: string, description: string) => {
+    try {
+      await api.post('/social/posts/report', { postId, userId: user?.id, reason, description })
+    } catch (e) { console.error(e) }
+  }
+
   const handleBookmark = async (postId: string) => {
     try {
       await api.post('/social/posts/bookmark', { postId, userId: user?.id })
@@ -92,9 +110,9 @@ export default function BookmarksPage() {
               post={p}
               currentUserId={user?.id}
               onLike={handleLike}
-              onRepost={async () => {}}
-              onShare={async () => {}}
-              onReport={async () => {}}
+              onRepost={handleRepost}
+              onShare={handleShare}
+              onReport={handleReport}
               onMention={() => {}}
               onBookmark={handleBookmark}
               onReact={handleReact}

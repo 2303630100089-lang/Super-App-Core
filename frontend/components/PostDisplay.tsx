@@ -368,7 +368,7 @@ export default function PostDisplay({
               )}
             </div>
 
-            <button onClick={() => setShowComments(v => !v)}
+            <button onClick={() => setShowComments(prev => !prev)}
               className={clsx(
                 "flex items-center gap-1.5 p-2 rounded-xl transition-all",
                 showComments ? "text-blue-500 bg-blue-500/10" : "text-[var(--syn-comment)] hover:bg-[var(--bg-elevated)]"
@@ -504,15 +504,15 @@ function CommentPanel({ postId, currentUserId, onClose }: { postId: string; curr
   }, [postId, sort])
 
   const handleSubmit = async () => {
-    if (!newComment.trim() || !user?.id) return
+    if (!newComment.trim() || !currentUserId) return
     setSubmitting(true)
     try {
       const res = await api.post('/social/posts/comment', {
         postId,
         parentId: replyTo?.id || null,
-        userId: user.id,
-        userName: user.name || 'User',
-        userAvatar: user.avatar || '',
+        userId: currentUserId,
+        userName: user?.name || 'User',
+        userAvatar: user?.avatar || '',
         content: newComment.trim(),
       })
       if (res.data.status === 'success') {
@@ -523,8 +523,19 @@ function CommentPanel({ postId, currentUserId, onClose }: { postId: string; curr
     } catch (e) { console.error(e) } finally { setSubmitting(false) }
   }
 
-  const topLevel = comments.filter(c => !c.parentId && !c.isDeleted)
-  const getReplies = (id: string) => comments.filter(c => String(c.parentId) === String(id) && !c.isDeleted)
+  const topLevel = React.useMemo(() => comments.filter(c => !c.parentId && !c.isDeleted), [comments])
+  const repliesMap = React.useMemo(() => {
+    const map: Record<string, any[]> = {}
+    for (const c of comments) {
+      if (c.parentId && !c.isDeleted) {
+        const key = String(c.parentId)
+        if (!map[key]) map[key] = []
+        map[key].push(c)
+      }
+    }
+    return map
+  }, [comments])
+  const getReplies = React.useCallback((id: string) => repliesMap[id] || [], [repliesMap])
 
   return (
     <div className="border-t border-gray-200/20 dark:border-gray-800/40 bg-[var(--bg-elevated)] rounded-b-[2rem]">

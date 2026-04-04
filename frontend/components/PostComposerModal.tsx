@@ -93,7 +93,7 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
     }
   }
 
-  const handleSubmit = async (asDraft = false) => {
+  const handleSubmit = async (isDraft = false) => {
     const postData: any = {
       type: postType,
       content,
@@ -101,7 +101,7 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
       mentions: mentions.split(',').filter(m => m.trim()).map(m => m.trim().replace('@', '')),
       media: media.map(m => ({ url: m, mediaType: postType === 'video' ? 'video' : 'image' })),
       isReel: postType === 'video' ? isReel : false,
-      isDraft: asDraft,
+      isDraft,
       visibility,
       ...(scheduledAt ? { scheduledAt } : {}),
     }

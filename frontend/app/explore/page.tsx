@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '@/store/useAuthStore'
 import { getSocialFeed } from '@/services/apiServices'
@@ -85,9 +85,14 @@ export default function SocialFeedPage() {
     } catch (e) {}
   }
 
-  const filteredPosts = searchQuery
-    ? posts.filter(p => p.content?.toLowerCase().includes(searchQuery.toLowerCase()) || p.hashtags?.some((h: string) => h.toLowerCase().includes(searchQuery.toLowerCase())))
-    : posts
+  const filteredPosts = useMemo(() => {
+    if (!searchQuery) return posts
+    const q = searchQuery.toLowerCase()
+    return posts.filter(p =>
+      p.content?.toLowerCase().includes(q) ||
+      p.hashtags?.some((h: string) => h.toLowerCase().includes(q))
+    )
+  }, [posts, searchQuery])
 
   return (
     <div className="max-w-2xl mx-auto min-h-screen bg-[var(--bg-primary)] relative overflow-hidden">

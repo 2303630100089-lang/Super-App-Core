@@ -42,8 +42,7 @@ export default function HashtagPage() {
       if (p === 1) setPosts(data)
       else setPosts(prev => [...prev, ...data])
       setHasMore(data.length === 20)
-    } catch (e) { console.error(e) } finally { setLoading(false) }
-  }
+    } catch (e) { console.error(e) } finally { setLoading(false) }  }
 
   const fetchTrending = async () => {
     try {
@@ -66,7 +65,7 @@ export default function HashtagPage() {
       await api.post('/social/posts/like', { postId, userId: user?.id })
       setPosts(prev => prev.map(p => {
         if (p._id !== postId) return p
-        const likes = p.likes?.includes(user?.id || '')
+        const likes = p.likes?.includes(user?.id)
           ? p.likes.filter((id: string) => id !== user?.id)
           : [...(p.likes || []), user?.id || '']
         return { ...p, likes }
