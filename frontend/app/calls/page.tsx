@@ -83,7 +83,7 @@ export default function CallsPage() {
   }, [callState])
 
   const initiateCall = (name: string, avatar: string, type: 'voice' | 'video', receiverId?: string) => {
-    if (!receiverId) { showToast('Cannot initiate call: recipient not found'); return }
+    if (!receiverId) { showToast('Cannot initiate call: missing recipient information'); return }
     setActiveCall({ name, avatar, type })
     setCallState('ringing')
     setCallDuration(0)

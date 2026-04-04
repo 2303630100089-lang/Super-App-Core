@@ -87,7 +87,7 @@ export default function LivePage() {
   const handleWatchStream = async (stream: LiveStream) => {
     if (!user) { showToast('Please sign in to watch streams'); return }
     setSelectedStream(stream)
-    try { await joinLiveStream(stream._id) } catch (err) { console.error('Failed to join stream:', err); showToast('Could not join stream. Watching in view-only mode.') }
+    try { await joinLiveStream(stream._id) } catch (err) { console.error('Failed to join stream:', err); showToast('Failed to join stream. Please try again.') }
   }
 
   const handleLeaveStream = async () => {

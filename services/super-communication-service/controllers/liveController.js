@@ -79,7 +79,8 @@ export const leaveStream = async (req, res) => {
       { $inc: { viewers: -1 } },
       { new: true }
     );
-    res.json({ status: 'left', viewers: result?.viewers ?? 0 });
+    if (!result) return res.json({ status: 'left', viewers: 0 });
+    res.json({ status: 'left', viewers: result.viewers });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
