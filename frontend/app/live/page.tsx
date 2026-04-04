@@ -83,12 +83,12 @@ export default function LivePage() {
 
   const handleWatchStream = async (stream: LiveStream) => {
     setSelectedStream(stream)
-    try { await joinLiveStream(stream._id) } catch {}
+    try { await joinLiveStream(stream._id) } catch (err) { console.error('Failed to join stream:', err) }
   }
 
   const handleLeaveStream = async () => {
     if (selectedStream) {
-      try { await leaveLiveStream(selectedStream._id) } catch {}
+      try { await leaveLiveStream(selectedStream._id) } catch (err) { console.error('Failed to leave stream:', err) }
     }
     setSelectedStream(null)
   }

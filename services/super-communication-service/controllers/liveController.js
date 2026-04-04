@@ -74,11 +74,12 @@ export const leaveStream = async (req, res) => {
   try {
     const streamId = String(req.params.streamId);
     // Ensure viewers count does not drop below zero
-    await LiveStream.findOneAndUpdate(
+    const result = await LiveStream.findOneAndUpdate(
       { _id: streamId, viewers: { $gt: 0 } },
-      { $inc: { viewers: -1 } }
+      { $inc: { viewers: -1 } },
+      { new: true }
     );
-    res.json({ status: 'left' });
+    res.json({ status: 'left', viewers: result?.viewers ?? 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

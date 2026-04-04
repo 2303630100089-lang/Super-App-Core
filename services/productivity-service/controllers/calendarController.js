@@ -5,8 +5,8 @@ export const getEvents = async (req, res) => {
     const userId = String(req.params.userId || req.headers['x-user-id'] || '');
     if (!userId) return res.status(400).json({ error: 'userId required' });
     const { month, year } = req.query;
-    // Use $in for the sharedWith array field
-    const filter = { $or: [{ userId }, { sharedWith: { $in: [userId] } }] };
+    // Use direct equality - MongoDB checks if element is in array
+    const filter = { $or: [{ userId }, { sharedWith: userId }] };
     if (month && year) {
       const m = parseInt(month, 10);
       const y = parseInt(year, 10);

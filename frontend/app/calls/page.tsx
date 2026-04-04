@@ -80,10 +80,11 @@ export default function CallsPage() {
   }, [callState])
 
   const initiateCall = (name: string, avatar: string, type: 'voice' | 'video', receiverId?: string) => {
+    if (!receiverId) return
     setActiveCall({ name, avatar, type })
     setCallState('ringing')
     setCallDuration(0)
-    socketService.emitCallUser({ callerId: user?.id, receiverId: receiverId || 'unknown', type })
+    socketService.emitCallUser({ callerId: user?.id, receiverId, type })
   }
 
   const endCall = () => {
