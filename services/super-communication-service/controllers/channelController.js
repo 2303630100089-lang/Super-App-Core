@@ -344,7 +344,7 @@ export const getChannelAnalytics = async (req, res) => {
     if (!channel) return res.status(404).json({ error: 'Channel not found' });
     const [totalMessages, totalViews, topMessages] = await Promise.all([
       SuperMessage.countDocuments({ chatId: channelId, isSent: true }),
-      SuperMessage.aggregate([{ $match: { chatId: channel._id } }, { $group: { _id: null, totalViews: { $sum: '$viewCount' } } }]),
+      SuperMessage.aggregate([{ $match: { chatId: channelId } }, { $group: { _id: null, totalViews: { $sum: '$viewCount' } } }]),
       SuperMessage.find({ chatId: channelId, isSent: true }).sort({ viewCount: -1 }).limit(5).select('content viewCount createdAt')
     ]);
     res.json({

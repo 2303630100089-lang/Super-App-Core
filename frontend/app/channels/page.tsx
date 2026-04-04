@@ -19,7 +19,7 @@ const CHANNEL_TYPES = [
 ]
 
 const Av = ({ name, avatar }: { name?: string; avatar?: string }) => {
-  if (avatar && !avatar.startsWith('http') === false)
+  if (avatar && avatar.startsWith('http'))
     return <img src={avatar} className="w-12 h-12 rounded-2xl object-cover shrink-0" alt="" />
   return (
     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-lg shrink-0 uppercase">
