@@ -137,13 +137,55 @@ export const joinByInvite = async (req, res) => {
 // Messages
 export const sendMessage = async (req, res) => {
   try {
-    const msg = new GroupMessage(req.body);
+    const { groupId, senderId, scheduledAt } = req.body;
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+
+    // Enforce slow mode (skip for admins and system)
+    const slowMode = group.settings?.slowModeSeconds || 0;
+    if (slowMode > 0 && senderId !== 'system' && !group.admins.includes(senderId)) {
+      const lastMsg = await GroupMessage.findOne({ groupId, senderId, isSent: true }).sort({ createdAt: -1 });
+      if (lastMsg) {
+        const secondsSinceLast = (Date.now() - new Date(lastMsg.createdAt).getTime()) / 1000;
+        if (secondsSinceLast < slowMode) {
+          const waitSecs = Math.ceil(slowMode - secondsSinceLast);
+          return res.status(429).json({ error: `Slow mode: wait ${waitSecs}s before sending again` });
+        }
+      }
+    }
+
+    // Enforce onlyAdminsCanPost
+    if (group.settings?.onlyAdminsCanPost && !group.admins.includes(senderId) && senderId !== 'system') {
+      return res.status(403).json({ error: 'Only admins can send messages in this group' });
+    }
+
+    // Check if sender is banned
+    if (group.banned?.includes(senderId)) {
+      return res.status(403).json({ error: 'You are banned from this group' });
+    }
+
+    // Check if sender is muted
+    const memberEntry = group.members.find(m => m.userId === senderId);
+    if (memberEntry?.isMuted) {
+      if (!memberEntry.mutedUntil || new Date(memberEntry.mutedUntil) > new Date()) {
+        return res.status(403).json({ error: 'You are muted in this group' });
+      }
+    }
+
+    const isSent = !scheduledAt || new Date(scheduledAt) <= new Date();
+    const disappearingSeconds = group.settings?.disappearingMessages || 0;
+    const expiresAt = disappearingSeconds > 0 && isSent
+      ? new Date(Date.now() + disappearingSeconds * 1000)
+      : undefined;
+
+    const msg = new GroupMessage({ ...req.body, isSent, expiresAt });
     await msg.save();
-    
-    // Update group's last message
-    await Group.findByIdAndUpdate(msg.groupId, {
-      lastMessage: { content: msg.content || `[${msg.type}]`, senderId: msg.senderId, senderName: msg.senderName, timestamp: new Date() }
-    });
+
+    if (isSent) {
+      await Group.findByIdAndUpdate(groupId, {
+        lastMessage: { content: msg.content || `[${msg.type}]`, senderId: msg.senderId, senderName: msg.senderName, timestamp: new Date() }
+      });
+    }
 
     res.status(201).json({ status: 'success', data: msg });
   } catch (err) {
@@ -224,6 +266,131 @@ export const searchMessages = async (req, res) => {
   try {
     const { q } = req.query;
     const messages = await GroupMessage.find({ groupId: req.params.groupId, content: new RegExp(q, 'i'), isDeleted: false }).sort({ createdAt: -1 }).limit(50);
+    res.json({ status: 'success', data: messages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const editMessage = async (req, res) => {
+  try {
+    const { content, userId } = req.body;
+    const msg = await GroupMessage.findById(req.params.messageId);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    if (msg.senderId !== userId) return res.status(403).json({ error: 'Cannot edit another user\'s message' });
+    msg.content = content;
+    msg.isEdited = true;
+    msg.editedAt = new Date();
+    await msg.save();
+    res.json({ status: 'success', data: msg });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const unpinMessage = async (req, res) => {
+  try {
+    await GroupMessage.findByIdAndUpdate(req.params.messageId, { isPinned: false });
+    await Group.findByIdAndUpdate(req.body.groupId, { $pull: { pinnedMessages: req.params.messageId } });
+    res.json({ status: 'success', message: 'Message unpinned' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getPinnedMessages = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    const messages = await GroupMessage.find({ _id: { $in: group.pinnedMessages }, isDeleted: false });
+    res.json({ status: 'success', data: messages });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const muteMember = async (req, res) => {
+  try {
+    const { userId, muteDurationSeconds } = req.body;
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    const member = group.members.find(m => m.userId === userId);
+    if (!member) return res.status(404).json({ error: 'Member not found' });
+    member.isMuted = true;
+    member.mutedUntil = muteDurationSeconds ? new Date(Date.now() + muteDurationSeconds * 1000) : null;
+    await group.save();
+    await new GroupMessage({ groupId: group._id, senderId: 'system', senderName: 'System', type: 'system', content: `${member.userName || userId} was muted` }).save();
+    res.json({ status: 'success', message: 'Member muted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const unmuteMember = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    const member = group.members.find(m => m.userId === userId);
+    if (!member) return res.status(404).json({ error: 'Member not found' });
+    member.isMuted = false;
+    member.mutedUntil = null;
+    await group.save();
+    res.json({ status: 'success', message: 'Member unmuted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const banMember = async (req, res) => {
+  try {
+    const { userId, bannedBy } = req.body;
+    const group = await Group.findById(req.params.groupId);
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    const member = group.members.find(m => m.userId === userId);
+    group.members = group.members.filter(m => m.userId !== userId);
+    group.admins = group.admins.filter(a => a !== userId);
+    group.memberCount = Math.max(0, group.memberCount - 1);
+    if (!group.banned) group.banned = [];
+    if (!group.banned.includes(userId)) group.banned.push(userId);
+    await group.save();
+    await new GroupMessage({ groupId: group._id, senderId: 'system', senderName: 'System', type: 'system', content: `${member?.userName || userId} was banned` }).save();
+    res.json({ status: 'success', message: 'Member banned' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const unbanMember = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    await Group.findByIdAndUpdate(req.params.groupId, { $pull: { banned: userId } });
+    res.json({ status: 'success', message: 'Member unbanned' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getPublicGroups = async (req, res) => {
+  try {
+    const { q, category, page = 1, limit = 20 } = req.query;
+    const filter = { 'settings.isPublic': true, isArchived: false };
+    if (q) filter.name = new RegExp(q, 'i');
+    if (category) filter['settings.category'] = category;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [groups, total] = await Promise.all([
+      Group.find(filter).select('-members -pinnedMessages').sort({ memberCount: -1 }).skip(skip).limit(parseInt(limit)),
+      Group.countDocuments(filter)
+    ]);
+    res.json({ status: 'success', data: groups, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getScheduledMessages = async (req, res) => {
+  try {
+    const messages = await GroupMessage.find({ groupId: req.params.groupId, isSent: false }).sort({ scheduledAt: 1 });
     res.json({ status: 'success', data: messages });
   } catch (err) {
     res.status(500).json({ error: err.message });

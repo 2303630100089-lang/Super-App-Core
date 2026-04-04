@@ -16,12 +16,17 @@ const groupSchema = new mongoose.Schema({
     mutedUntil: Date
   }],
   memberCount: { type: Number, default: 0 },
+  banned: [{ type: String }], // userId array
   settings: {
     onlyAdminsCanPost: { type: Boolean, default: false },
     onlyAdminsCanEditInfo: { type: Boolean, default: true },
     approveNewMembers: { type: Boolean, default: false },
     maxMembers: { type: Number, default: 256 },
-    disappearingMessages: { type: Number, default: 0 } // 0 = off, seconds otherwise
+    disappearingMessages: { type: Number, default: 0 }, // 0 = off, seconds otherwise
+    slowModeSeconds: { type: Number, default: 0 }, // 0 = off
+    isPublic: { type: Boolean, default: false },
+    category: { type: String, default: '' },
+    tags: [{ type: String }]
   },
   inviteLink: { type: String, unique: true, sparse: true },
   pinnedMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: 'GroupMessage' }],

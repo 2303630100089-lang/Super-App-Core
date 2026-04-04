@@ -13,4 +13,12 @@ router.delete('/:groupId/members/:userId', groupController.removeMember);
 router.post('/:groupId/admin', groupController.makeAdmin);
 router.delete('/:groupId/admin/:userId', groupController.removeAdmin);
 
+// Messages
+router.post('/:groupId/messages', groupController.sendGroupMessage);
+router.get('/:groupId/messages', groupController.getGroupMessages);
+router.get('/:groupId/pinned', groupController.getGroupPinnedMessages);
+router.post('/:groupId/messages/:messageId/react', groupController.reactToGroupMessage);
+router.delete('/:groupId/messages/:messageId', groupController.deleteGroupMessage);
+router.post('/:groupId/messages/:messageId/pin', groupController.pinGroupMessage);
+
 export default router;

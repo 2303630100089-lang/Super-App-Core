@@ -16,7 +16,10 @@ const superMessageSchema = new mongoose.Schema({
     readAt: { type: Date, default: Date.now }
   }],
   isEdited: { type: Boolean, default: false },
+  editedAt: { type: Date },
   isDeletedEveryone: { type: Boolean, default: false },
+  isDeleted: { type: Boolean, default: false },
+  isPinned: { type: Boolean, default: false },
   replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'SuperMessage', default: null },
   forwardedFrom: { type: mongoose.Schema.Types.ObjectId, ref: 'SuperMessage', default: null },
   reactions: [{
@@ -24,7 +27,11 @@ const superMessageSchema = new mongoose.Schema({
     emoji: String
   }],
   starredBy: [String], // Array of userIds
-  
+  mentions: [String], // Array of userIds mentioned
+  viewCount: { type: Number, default: 0 }, // For channel post analytics
+  scheduledAt: { type: Date, default: null },
+  isSent: { type: Boolean, default: true },
+
   // Phase AI6 & AI7: Media & Lifecycle
   viewOnce: { type: Boolean, default: false },
   expiryTime: { type: Date }, // For disappearing messages

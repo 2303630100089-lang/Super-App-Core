@@ -99,6 +99,22 @@ setInterval(async () => {
   }
 }, 60000); // Check every minute
 
+// Background Job: dispatch scheduled channel/group messages
+import Channel from './models/Channel.js';
+setInterval(async () => {
+  try {
+    const due = await SuperMessage.find({ isSent: false, scheduledAt: { $lte: new Date() } });
+    for (const msg of due) {
+      msg.isSent = true;
+      await msg.save();
+      await Channel.findByIdAndUpdate(msg.chatId, { lastMessageAt: new Date() }).catch(() => {});
+    }
+    if (due.length > 0) console.log(`📨 Dispatched ${due.length} scheduled channel messages.`);
+  } catch (err) {
+    console.error('Error dispatching scheduled channel messages:', err);
+  }
+}, 30000); // Check every 30 seconds
+
 connectDB().then(() => {
   const server = app.listen(PORT, () => {
     console.log(`🚀 Super Communication Service running on port ${PORT}`);
