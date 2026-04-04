@@ -57,9 +57,18 @@ const postSchema = new mongoose.Schema({
     count: { type: Number, default: 1 }
   }],
   
+  // Facebook-style reactions: { like: [userId], love: [userId], haha: [userId], wow: [userId], sad: [userId], angry: [userId] }
+  reactions: { type: Map, of: [String], default: {} },
+
+  // Draft & Scheduling
+  isDraft: { type: Boolean, default: false },
+  scheduledAt: { type: Date, default: null },
+  visibility: { type: String, enum: ['public', 'friends', 'private'], default: 'public' },
+
   // Metadata & Stats
   commentCount: { type: Number, default: 0 },
   viewCount: { type: Number, default: 0 },
+  shareCount: { type: Number, default: 0 },
   isReel: { type: Boolean, default: false },
   metadata: { type: mongoose.Schema.Types.Mixed }, // For polls, events, link metadata
   pollVotes: { type: Map, of: [String], default: {} },

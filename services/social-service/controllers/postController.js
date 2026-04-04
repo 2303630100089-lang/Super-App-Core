@@ -4,14 +4,17 @@ import Comment from '../models/Comment.js';
 // Create post
 const createPost = async (req, res) => {
   try {
-    const { userId, userName, userAvatar, content, type, media, hashtags, metadata, isReel, title, communityId, communityName, flairs, isNSFW, isSpoiler, isOriginalContent, quotedPostId } = req.body;
+    const { userId, userName, userAvatar, content, type, media, hashtags, mentions, metadata, isReel, title, communityId, communityName, flairs, isNSFW, isSpoiler, isOriginalContent, quotedPostId, isDraft, scheduledAt, visibility } = req.body;
     
     // Check if it has a title or community, implicitly make it a reddit-like post (unless it's a repost)
     const postType = type === 'repost' ? 'repost' : (title || communityId) ? 'reddit_post' : (type || 'text');
     
     const post = new Post({ 
-      userId, userName, userAvatar, content, type: postType, media, hashtags, metadata, isReel,
-      title, communityId, communityName, flairs, isNSFW, isSpoiler, isOriginalContent, quotedPostId
+      userId, userName, userAvatar, content, type: postType, media, hashtags, mentions, metadata, isReel,
+      title, communityId, communityName, flairs, isNSFW, isSpoiler, isOriginalContent, quotedPostId,
+      isDraft: isDraft || false,
+      scheduledAt: scheduledAt || null,
+      visibility: visibility || 'public',
     });
     
     await post.save();
@@ -180,7 +183,9 @@ const getFeed = async (req, res) => {
   try {
     const { followingIds, page = 1, limit = 30, sort = 'recent', communityId, filterType } = req.body;
     
-    const filter = { isReel: false };
+    const now = new Date();
+    const scheduledFilter = { $or: [{ scheduledAt: null }, { scheduledAt: { $lte: now } }] };
+    const filter = { isReel: false, isDraft: { $ne: true }, ...scheduledFilter };
     if (followingIds && followingIds.length > 0) {
       filter.userId = { $in: followingIds };
     }
@@ -415,9 +420,181 @@ const searchMentions = async (req, res) => {
   }
 };
 
+// Edit post (owner only)
+const editPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { userId, content, hashtags, mentions, media, metadata } = req.body;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    if (post.userId !== userId) return res.status(403).json({ error: 'Not authorized to edit this post' });
+
+    if (content !== undefined) post.content = content;
+    if (hashtags !== undefined) post.hashtags = hashtags;
+    if (mentions !== undefined) post.mentions = mentions;
+    if (media !== undefined) post.media = media;
+    if (metadata !== undefined) post.metadata = metadata;
+    await post.save();
+    res.json({ status: 'success', data: post });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Toggle bookmark / save
+const toggleBookmark = async (req, res) => {
+  try {
+    const { postId, userId } = req.body;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const isSaved = post.savedBy.includes(userId);
+    if (isSaved) {
+      post.savedBy = post.savedBy.filter(id => id !== userId);
+    } else {
+      post.savedBy.push(userId);
+    }
+    await post.save();
+    res.json({ status: 'success', bookmarked: !isSaved, data: post });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Get bookmarked posts for a user
+const getBookmarks = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const { page = 1, limit = 20 } = req.query;
+    const posts = await Post.find({ savedBy: userId, isDeleted: false })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .lean();
+    res.json({ status: 'success', data: posts });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Facebook-style reactions (like, love, haha, wow, sad, angry)
+const reactToPost = async (req, res) => {
+  try {
+    const { postId, userId, reaction } = req.body; // reaction: 'like'|'love'|'haha'|'wow'|'sad'|'angry'|null (null = remove)
+    const validReactions = ['like', 'love', 'haha', 'wow', 'sad', 'angry'];
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    // Remove user from all existing reactions
+    for (const r of validReactions) {
+      const existing = post.reactions.get(r) || [];
+      post.reactions.set(r, existing.filter(id => id !== userId));
+    }
+
+    // Add new reaction if provided
+    if (reaction && validReactions.includes(reaction)) {
+      const current = post.reactions.get(reaction) || [];
+      current.push(userId);
+      post.reactions.set(reaction, current);
+    }
+    post.markModified('reactions');
+    await post.save();
+    res.json({ status: 'success', data: post });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Trending hashtags
+const getTrendingHashtags = async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // Last 7 days
+
+    const result = await Post.aggregate([
+      { $match: { createdAt: { $gte: since }, isDeleted: false, hashtags: { $exists: true, $ne: [] } } },
+      { $unwind: '$hashtags' },
+      { $group: { _id: '$hashtags', count: { $sum: 1 }, totalScore: { $sum: '$score' } } },
+      { $sort: { count: -1, totalScore: -1 } },
+      { $limit: Number(limit) },
+      { $project: { hashtag: '$_id', count: 1, totalScore: 1, _id: 0 } }
+    ]);
+
+    res.json({ status: 'success', data: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Get single post by ID
+const getPost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const post = await Post.findById(postId).lean();
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    res.json({ status: 'success', data: post });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Edit comment
+const editComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { userId, content } = req.body;
+    const comment = await Comment.findById(commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+    if (comment.userId !== userId) return res.status(403).json({ error: 'Not authorized' });
+    comment.content = content;
+    comment.isEdited = true;
+    await comment.save();
+    res.json({ status: 'success', data: comment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Delete comment (soft delete)
+const deleteComment = async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { userId } = req.body;
+    const comment = await Comment.findById(commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+    if (comment.userId !== userId) return res.status(403).json({ error: 'Not authorized' });
+    comment.isDeleted = true;
+    comment.content = '[deleted]';
+    await comment.save();
+    res.json({ status: 'success', message: 'Comment deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Pin/unpin comment (post owner only)
+const pinComment = async (req, res) => {
+  try {
+    const { postId, commentId, userId } = req.body;
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+    if (post.userId !== userId) return res.status(403).json({ error: 'Only post owner can pin comments' });
+
+    const comment = await Comment.findById(commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+    comment.isPinned = !comment.isPinned;
+    await comment.save();
+    res.json({ status: 'success', pinned: comment.isPinned, data: comment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export default { 
   createPost, likePost, votePost, awardPost, votePoll, 
   addComment, voteComment, getComments, getFeed, getExplore, 
   getReels, getUserPosts, toggleInterest, repostPost, sharePost,
-  reportPost, getPostReports, deletePost, searchHashtag, searchMentions
+  reportPost, getPostReports, deletePost, searchHashtag, searchMentions,
+  editPost, toggleBookmark, getBookmarks, reactToPost, getTrendingHashtags,
+  getPost, editComment, deleteComment, pinComment
 };

@@ -22,6 +22,7 @@ const commentSchema = new mongoose.Schema({
   
   isEdited: { type: Boolean, default: false },
   isDeleted: { type: Boolean, default: false }, // Useful to preserve thread structure when deleted
+  isPinned: { type: Boolean, default: false }, // Post owner can pin a comment
   
   // Legacy simple replies (kept for backward compatibility, but parentId handles deep nesting)
   replies: [{
