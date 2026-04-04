@@ -6,9 +6,10 @@ import api from '@/services/api'
 import { supabase } from '@/lib/supabase'
 import {
   Plus,
-  Loader2, Sparkles, Edit3
+  Loader2, Sparkles, Edit3, Play, Bookmark
 } from 'lucide-react'
 import clsx from 'clsx'
+import Link from 'next/link'
 import PostComposerModal from '@/components/PostComposerModal'
 import PostDisplay from '@/components/PostDisplay'
 
@@ -199,6 +200,40 @@ export default function FeedPage() {
     } catch (e) {}
   }
 
+  const handleReact = async (postId: string, reaction: string | null) => {
+    try {
+      await api.post('/social/posts/react', { postId, userId: user?.id, reaction })
+      await fetchFeed()
+    } catch (e) { console.error(e) }
+  }
+
+  const handleBookmark = async (postId: string) => {
+    try {
+      await api.post('/social/posts/bookmark', { postId, userId: user?.id })
+      setPosts(prev => prev.map(p => {
+        if (p._id !== postId) return p
+        const savedBy = (p as any).savedBy || []
+        const isBookmarked = savedBy.includes(user?.id || '')
+        return { ...p, savedBy: isBookmarked ? savedBy.filter((id: string) => id !== user?.id) : [...savedBy, user?.id || ''] }
+      }))
+    } catch (e) { console.error(e) }
+  }
+
+  const handleEditPost = async (postId: string, content: string) => {
+    try {
+      await api.put(`/social/posts/${postId}`, { userId: user?.id, content })
+      setPosts(prev => prev.map(p => p._id === postId ? { ...p, content } : p))
+    } catch (e) { console.error(e) }
+  }
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Delete this post?')) return
+    try {
+      await api.post('/social/posts/delete', { postId, userId: user?.id })
+      setPosts(prev => prev.filter(p => p._id !== postId))
+    } catch (e) { console.error(e) }
+  }
+
   const handleRepost = async (postId: string) => {
     try {
       const res = await api.post('/social/posts/repost', { postId, userId: user?.id })
@@ -268,11 +303,11 @@ export default function FeedPage() {
         {stories.map((s, i) => <StoryCircle key={i} user={s} active={s.hasUnviewed} onClick={() => setViewingStory(s)} />)}
       </div>
 
-      {/* Post Composer Button */}
+      {/* Post Composer Button + Quick Links */}
       <div className="p-6 bg-[var(--bg-card)]/95 border-b border-gray-200/20 dark:border-gray-800/40 mb-6 shadow-lg">
         <button
           onClick={() => setShowComposer(true)}
-          className="w-full flex items-center gap-4 p-4 bg-[var(--bg-elevated)] rounded-2xl hover:ring-2 hover:ring-blue-500/50 transition-all group"
+          className="w-full flex items-center gap-4 p-4 bg-[var(--bg-elevated)] rounded-2xl hover:ring-2 hover:ring-blue-500/50 transition-all group mb-3"
         >
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden shrink-0">
             <AvatarWithFallback src={user?.avatar} name={user?.name || user?.id} className="w-full h-full object-cover" />
@@ -283,6 +318,20 @@ export default function FeedPage() {
           </div>
           <Edit3 size={20} className="text-blue-500 group-hover:scale-110 transition-transform" />
         </button>
+        <div className="flex gap-2">
+          <Link href="/reels"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl text-xs font-black text-pink-500 hover:bg-pink-500/20 transition-all">
+            <Play size={14} fill="currentColor" /> Reels
+          </Link>
+          <Link href="/bookmarks"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-[var(--bg-elevated)] border border-gray-200/20 dark:border-gray-800/40 rounded-xl text-xs font-black text-[var(--syn-comment)] hover:text-yellow-500 hover:border-yellow-500/30 transition-all">
+            <Bookmark size={14} /> Saved
+          </Link>
+          <Link href="/explore"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-[var(--bg-elevated)] border border-gray-200/20 dark:border-gray-800/40 rounded-xl text-xs font-black text-[var(--syn-comment)] hover:text-blue-500 hover:border-blue-500/30 transition-all">
+            🔍 Explore
+          </Link>
+        </div>
       </div>
 
       {/* Posts Feed */}
@@ -316,6 +365,10 @@ export default function FeedPage() {
               onReport={handleReport}
               onMention={handleMention}
               onComment={() => {}}
+              onBookmark={handleBookmark}
+              onReact={handleReact}
+              onEditPost={handleEditPost}
+              onDeletePost={handleDeletePost}
             />
           ))
         ) : (

@@ -36,8 +36,11 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
   const [reminderDate, setReminderDate] = useState('')
   const [reminderTime, setReminderTime] = useState('')
   
-  // Alert fields
-  const [alertLevel, setAlertLevel] = useState('info') // info, warning, critical
+  // Reel / Schedule / Draft
+  const [isReel, setIsReel] = useState(false)
+  const [isDraft, setIsDraft] = useState(false)
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public')
 
   const postTypeOptions: { value: PostType; label: string; icon: string }[] = [
     { value: 'text', label: 'Text', icon: '📝' },
@@ -98,6 +101,10 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
       hashtags: hashtags.split(',').filter(h => h.trim()).map(h => h.trim().replace('#', '')),
       mentions: mentions.split(',').filter(m => m.trim()).map(m => m.trim().replace('@', '')),
       media: media.map(m => ({ url: m, mediaType: postType === 'video' ? 'video' : 'image' })),
+      isReel: postType === 'video' ? isReel : false,
+      isDraft,
+      visibility,
+      ...(scheduledAt ? { scheduledAt } : {}),
     }
 
     if (postType === 'poll') {
@@ -139,6 +146,10 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
       setMedia([])
       setPollOptions(['Option 1', 'Option 2'])
       setPostType('text')
+      setIsReel(false)
+      setIsDraft(false)
+      setScheduledAt('')
+      setVisibility('public')
       onClose()
     } catch (err) {
       console.error('Error submitting post:', err)
@@ -417,6 +428,46 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
               </div>
             </>
           )}
+
+          {/* Visibility */}
+          <div>
+            <label className="block text-xs font-black text-[var(--syn-comment)] uppercase mb-2">Visibility</label>
+            <div className="flex gap-2">
+              {(['public', 'friends', 'private'] as const).map(v => (
+                <button key={v} onClick={() => setVisibility(v)}
+                  className={clsx(
+                    'flex-1 py-2 rounded-lg border-2 transition-all capitalize font-bold text-xs',
+                    visibility === v
+                      ? 'bg-blue-500/20 border-blue-500 text-blue-500'
+                      : 'border-gray-200/20 dark:border-gray-800/40 text-[var(--syn-comment)] hover:border-blue-500/50'
+                  )}>
+                  {v === 'public' ? '🌎' : v === 'friends' ? '👥' : '🔒'} {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reel toggle (video only) */}
+          {postType === 'video' && (
+            <label className="flex items-center gap-3 cursor-pointer p-3 bg-[var(--bg-elevated)] rounded-xl">
+              <input type="checkbox" checked={isReel} onChange={e => setIsReel(e.target.checked)} className="w-4 h-4" />
+              <div>
+                <span className="text-sm font-black text-[var(--text-primary)]">🎬 Post as Reel</span>
+                <p className="text-[10px] text-[var(--syn-comment)]">Appears in the TikTok-style vertical video feed</p>
+              </div>
+            </label>
+          )}
+
+          {/* Schedule post */}
+          <div>
+            <label className="block text-xs font-black text-[var(--syn-comment)] uppercase mb-2">Schedule (optional)</label>
+            <input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={e => setScheduledAt(e.target.value)}
+              className="w-full bg-[var(--bg-elevated)] border border-gray-200/20 dark:border-gray-800/40 rounded-xl p-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
         </div>
 
         {/* Footer */}
@@ -428,11 +479,18 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
+            onClick={() => { setIsDraft(true); handleSubmit() }}
+            disabled={isLoading || uploadingMedia || !canSubmit}
+            className="px-4 py-2 bg-[var(--bg-elevated)] border border-gray-200/20 dark:border-gray-800/40 text-[var(--text-primary)] rounded-lg font-bold hover:brightness-110 transition-all disabled:opacity-50 active:scale-95"
+          >
+            Save Draft
+          </button>
+          <button
+            onClick={() => { setIsDraft(false); handleSubmit() }}
             disabled={isLoading || uploadingMedia || !canSubmit}
             className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:brightness-110 transition-all disabled:opacity-50 active:scale-95"
           >
-            Post
+            {scheduledAt ? '📅 Schedule' : 'Post'}
           </button>
         </div>
       </div>
