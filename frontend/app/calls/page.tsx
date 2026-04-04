@@ -79,11 +79,11 @@ export default function CallsPage() {
     return () => clearInterval(timer)
   }, [callState])
 
-  const initiateCall = (name: string, avatar: string, type: 'voice' | 'video') => {
+  const initiateCall = (name: string, avatar: string, type: 'voice' | 'video', receiverId?: string) => {
     setActiveCall({ name, avatar, type })
     setCallState('ringing')
     setCallDuration(0)
-    socketService.emitCallUser({ callerId: user?.id, type })
+    socketService.emitCallUser({ callerId: user?.id, receiverId: receiverId || 'unknown', type })
   }
 
   const endCall = () => {
@@ -243,10 +243,10 @@ export default function CallsPage() {
               </div>
 
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                <button onClick={() => initiateCall(name, avatar, 'voice')} className="p-2.5 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-xl hover:bg-green-100 transition-colors active:scale-90">
+                <button onClick={() => initiateCall(name, avatar, 'voice', peerId)} className="p-2.5 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-xl hover:bg-green-100 transition-colors active:scale-90">
                   <Phone size={16} />
                 </button>
-                <button onClick={() => initiateCall(name, avatar, 'video')} className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors active:scale-90">
+                <button onClick={() => initiateCall(name, avatar, 'video', peerId)} className="p-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors active:scale-90">
                   <Video size={16} />
                 </button>
               </div>

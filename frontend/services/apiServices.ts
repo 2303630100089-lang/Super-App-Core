@@ -341,7 +341,8 @@ export const getCodingTopics = async () => {
 // CODING DISCUSSIONS
 // ==========================================
 export const getCodingDiscussions = async (topic?: string) => {
-  const { data } = await api.get('/professional/coding-discussions' + (topic ? `?topic=${topic}` : ''));
+  const params = topic ? `?topic=${encodeURIComponent(topic)}` : '';
+  const { data } = await api.get(`/professional/coding-discussions${params}`);
   return data;
 };
 
@@ -447,7 +448,7 @@ export const joinGameRoom = async (roomCode: string, userId: string, userName: s
 // LIVE STREAMING
 // ==========================================
 export const getLiveStreams = async (category?: string) => {
-  const params = category && category !== 'All' ? `?category=${category}` : '';
+  const params = category && category !== 'All' ? `?category=${encodeURIComponent(category)}` : '';
   const { data } = await api.get(`/super-comm/live${params}`);
   return data;
 };

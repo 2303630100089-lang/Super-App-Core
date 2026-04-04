@@ -70,9 +70,14 @@ export const createDiscussion = async (req, res) => {
 export const likeDiscussion = async (req, res) => {
   try {
     const { discussionId } = req.params;
-    const userId = String(req.headers['x-user-id'] || req.body.userId || '');
-    if (!userId) return res.status(400).json({ error: 'userId required' });
-    const discussion = await CodingDiscussion.findById(String(discussionId));
+    const userId = String(req.headers['x-user-id'] || '');
+    if (!userId) return res.status(401).json({ error: 'Authentication required' });
+    let discussion;
+    try {
+      discussion = await CodingDiscussion.findById(String(discussionId));
+    } catch (castErr) {
+      return res.status(400).json({ error: 'Invalid discussion ID' });
+    }
     if (!discussion) return res.status(404).json({ error: 'Discussion not found' });
     const liked = discussion.likes.includes(userId);
     if (liked) {

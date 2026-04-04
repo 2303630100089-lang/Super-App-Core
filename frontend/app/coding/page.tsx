@@ -123,7 +123,7 @@ export default function CodingHubPage() {
                   )}
                   <div className="flex items-center gap-4 pt-4 border-t dark:border-gray-700 mt-4">
                     <button onClick={() => likeMutation.mutate(d._id)} className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 text-xs transition-colors">
-                      <Heart size={16} className={d.likes?.includes(user?.id) ? 'fill-red-500 text-red-500' : ''} />
+                      <Heart size={16} className={d.likes?.includes(String(user?.id)) ? 'fill-red-500 text-red-500' : ''} />
                       <span>{d.likes?.length || 0}</span>
                     </button>
                     <div className="flex items-center gap-1.5 text-gray-500 text-xs">

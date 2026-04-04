@@ -39,7 +39,7 @@ export default function TasksPage() {
     queryFn: async () => {
       try {
         const res = await getTasks()
-        return (res?.data || res || []) as Task[]
+        return (res?.data || []) as Task[]
       } catch { return [] as Task[] }
     },
     enabled: !!user?.id,

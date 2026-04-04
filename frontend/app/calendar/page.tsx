@@ -49,7 +49,7 @@ export default function CalendarPage() {
     queryFn: async () => {
       try {
         const res = await getCalendarEvents(month + 1, year)
-        return (res?.data || res || []) as CalendarEvent[]
+        return (res?.data || []) as CalendarEvent[]
       } catch { return [] as CalendarEvent[] }
     },
     enabled: !!user?.id,

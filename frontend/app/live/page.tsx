@@ -265,7 +265,7 @@ export default function LivePage() {
 
               <button
                 onClick={() => startMutation.mutate({ hostId: user?.id, hostName: user?.name, hostAvatar: user?.avatar, title: streamTitle, category: streamCategory })}
-                disabled={!streamTitle.trim() || startMutation.isPending}
+                disabled={!streamTitle.trim() || startMutation.isPending || !user}
                 className="w-full bg-red-600 text-white py-4 rounded-xl font-black text-lg flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-200 dark:shadow-none active:scale-[0.98]"
               >
                 {startMutation.isPending ? <Loader2 size={20} className="animate-spin" /> : <Radio size={20} />}
