@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import useAuthStore from '@/store/useAuthStore'
+import { getGameLeaderboard, getPublicRooms, createGameRoom, joinGameRoom } from '@/services/apiServices'
 import { Gamepad2, Send, X, RotateCcw, Trophy, Users, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import clsx from 'clsx'
@@ -184,13 +186,40 @@ const GAMES = [
 export default function GamesPage() {
   const { user } = useAuthStore()
   const [activeGame, setActiveGame] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'games' | 'leaderboard' | 'rooms'>('games')
   const [chatMsgs, setChatMsgs] = useState<{ text: string; mine: boolean }[]>([
     { text: '🎮 Game started! Good luck!', mine: false }
   ])
 
+  const { data: leaderboardRes } = useQuery({
+    queryKey: ['game-leaderboard'],
+    queryFn: async () => {
+      try { const res = await getGameLeaderboard(); return res?.data || [] } catch { return [] }
+    },
+    enabled: activeTab === 'leaderboard',
+  })
+
+  const { data: roomsRes } = useQuery({
+    queryKey: ['public-rooms'],
+    queryFn: async () => {
+      try { const res = await getPublicRooms(); return res?.data || [] } catch { return [] }
+    },
+    enabled: activeTab === 'rooms',
+  })
+
+  const leaderboard = leaderboardRes || []
+  const rooms = roomsRes || []
+
+  const createRoomMutation = useMutation({
+    mutationFn: (data: any) => createGameRoom(data),
+    onSuccess: (res: any) => {
+      const room = res?.data
+      if (room?.roomCode) alert(`Room created! Code: ${room.roomCode}`)
+    },
+  })
+
   const sendChat = (text: string) => {
     setChatMsgs(prev => [...prev, { text, mine: true }])
-    // In real app: emit via socket to opponent
     setTimeout(() => {
       const replies = ['Nice move! 😄', 'Hmm, interesting...', 'GG!', 'You\'re good!', '🔥']
       setChatMsgs(prev => [...prev, { text: replies[Math.floor(Math.random() * replies.length)], mine: false }])
@@ -208,29 +237,102 @@ export default function GamesPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-24">
       <div className="px-5 py-4 bg-white dark:bg-gray-900 border-b dark:border-gray-800 sticky top-0 z-20 flex items-center gap-3">
         <Link href="/apps" className="p-2 bg-gray-100 dark:bg-gray-800 rounded-xl"><ChevronLeft size={18} className="dark:text-white"/></Link>
-        <h1 className="text-xl font-black dark:text-white">Games</h1>
+        <h1 className="text-xl font-black dark:text-white flex-1">Games</h1>
+        {activeTab === 'rooms' && (
+          <button
+            onClick={() => createRoomMutation.mutate({ host: user?.id, hostName: user?.name || 'Player', gameType: 'trivia' })}
+            disabled={createRoomMutation.isPending}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold"
+          >
+            {createRoomMutation.isPending ? '...' : '+ Room'}
+          </button>
+        )}
       </div>
-      <div className="p-5 space-y-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Play with friends or random opponents. Every game has a mini chat!</p>
-        <div className="grid grid-cols-2 gap-4">
-          {GAMES.map(g => (
-            <button key={g.id} onClick={() => !g.disabled && setActiveGame(g.id)} disabled={g.disabled}
-              className={clsx('relative bg-white dark:bg-gray-900 rounded-[2rem] p-5 border dark:border-gray-800 shadow-sm text-left transition-all',
-                g.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-blue-300 active:scale-95')}>
-              <div className={clsx('w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-3xl mb-3', g.color)}>
-                {g.emoji}
-              </div>
-              <p className="font-black text-sm dark:text-white">{g.name}</p>
-              <p className="text-[10px] text-gray-400 font-bold mt-0.5">{g.desc}</p>
-              {!g.disabled && (
-                <div className="mt-3 flex items-center gap-1 text-blue-600 text-[10px] font-black uppercase tracking-widest">
-                  <Users size={10}/> Play Now
+
+      {/* Tabs */}
+      <div className="flex gap-1 p-4 bg-white dark:bg-gray-900 border-b dark:border-gray-800">
+        {(['games', 'leaderboard', 'rooms'] as const).map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all ${activeTab === tab ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'games' && (
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400">Play with friends or random opponents. Every game has a mini chat!</p>
+          <div className="grid grid-cols-2 gap-4">
+            {GAMES.map(g => (
+              <button key={g.id} onClick={() => !g.disabled && setActiveGame(g.id)} disabled={g.disabled}
+                className={clsx('relative bg-white dark:bg-gray-900 rounded-[2rem] p-5 border dark:border-gray-800 shadow-sm text-left transition-all',
+                  g.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg hover:border-blue-300 active:scale-95')}>
+                <div className={clsx('w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-3xl mb-3', g.color)}>
+                  {g.emoji}
                 </div>
-              )}
-            </button>
+                <p className="font-black text-sm dark:text-white">{g.name}</p>
+                <p className="text-[10px] text-gray-400 font-bold mt-0.5">{g.desc}</p>
+                {!g.disabled && (
+                  <div className="mt-3 flex items-center gap-1 text-blue-600 text-[10px] font-black uppercase tracking-widest">
+                    <Users size={10}/> Play Now
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'leaderboard' && (
+        <div className="p-5 space-y-3">
+          <h2 className="font-black text-sm dark:text-white uppercase tracking-widest text-gray-400">Global Leaderboard</h2>
+          {leaderboard.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <Trophy size={40} className="mx-auto mb-3 text-gray-300" />
+              Play games to appear on the leaderboard!
+            </div>
+          ) : leaderboard.map((entry: any, i: number) => (
+            <div key={entry._id || i} className="bg-white dark:bg-gray-900 rounded-2xl p-4 border dark:border-gray-800 flex items-center gap-4">
+              <span className={`text-lg font-black ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-orange-400' : 'text-gray-500'}`}>
+                #{i + 1}
+              </span>
+              <img src={`https://i.pravatar.cc/40?u=${entry.userId}`} className="w-10 h-10 rounded-xl" alt="" />
+              <div className="flex-1">
+                <p className="font-bold text-sm dark:text-white">{entry.userName || `Player ${i+1}`}</p>
+                <p className="text-xs text-gray-400">{entry.wins || 0} wins · {entry.totalScore || 0} pts</p>
+              </div>
+              <Trophy size={16} className={i < 3 ? 'text-yellow-500' : 'text-gray-300'} />
+            </div>
           ))}
         </div>
-      </div>
+      )}
+
+      {activeTab === 'rooms' && (
+        <div className="p-5 space-y-3">
+          <h2 className="font-black text-sm dark:text-white uppercase tracking-widest text-gray-400">Public Rooms</h2>
+          {rooms.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <Users size={40} className="mx-auto mb-3 text-gray-300" />
+              No open rooms. Create one to invite friends!
+            </div>
+          ) : rooms.map((room: any) => (
+            <div key={room._id} className="bg-white dark:bg-gray-900 rounded-2xl p-4 border dark:border-gray-800 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center text-white font-black text-lg">
+                {room.roomCode?.slice(0, 2)}
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm dark:text-white">{room.hostName}'s Room</p>
+                <p className="text-xs text-gray-400 capitalize">{room.gameType} · {room.players?.length || 1}/{room.settings?.maxPlayers || 4} players</p>
+              </div>
+              <button
+                onClick={() => joinGameRoom(room.roomCode, user?.id || '', user?.name || 'Player')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors"
+              >
+                Join
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

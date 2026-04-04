@@ -137,14 +137,8 @@ export const revealBlindIdentity = async (userId: string, matchId: string) => {
 };
 
 // ==========================================
-// PRODUCTIVITY (Calendar, Tasks, Forms, Notion)
+// PRODUCTIVITY (Forms, Notes/Notion)
 // ==========================================
-
-// Calendar / Events
-export const getCalendarEvents = async (userId: string) => {
-  const { data } = await api.get(`/productivity/workspaces/user/${userId}`);
-  return data;
-};
 
 // Workspaces (Notion-style)
 export const createWorkspace = async (workspaceData: any) => {
@@ -338,10 +332,143 @@ export const startGame = async (gameType: string, chatId: string) => {
   return data;
 };
 
-// ==========================================
-// CODING TOPICS (API-driven)
-// ==========================================
 export const getCodingTopics = async () => {
     const { data } = await api.get('/professional/coding-topics');
     return data;
+};
+
+// ==========================================
+// CODING DISCUSSIONS
+// ==========================================
+export const getCodingDiscussions = async (topic?: string) => {
+  const params = topic ? `?topic=${encodeURIComponent(topic)}` : '';
+  const { data } = await api.get(`/professional/coding-discussions${params}`);
+  return data;
+};
+
+export const createCodingDiscussion = async (discussionData: any) => {
+  const { data } = await api.post('/professional/coding-discussions', discussionData);
+  return data;
+};
+
+export const likeDiscussion = async (discussionId: string) => {
+  const { data } = await api.post(`/professional/coding-discussions/${discussionId}/like`);
+  return data;
+};
+
+// ==========================================
+// TASKS
+// ==========================================
+export const getTasks = async () => {
+  const { data } = await api.get('/productivity/tasks');
+  return data;
+};
+
+export const createTask = async (taskData: any) => {
+  const { data } = await api.post('/productivity/tasks', taskData);
+  return data;
+};
+
+export const updateTask = async (taskId: string, updateData: any) => {
+  const { data } = await api.patch(`/productivity/tasks/${taskId}`, updateData);
+  return data;
+};
+
+export const deleteTask = async (taskId: string) => {
+  const { data } = await api.delete(`/productivity/tasks/${taskId}`);
+  return data;
+};
+
+// ==========================================
+// CALENDAR EVENTS
+// ==========================================
+export const getCalendarEvents = async (month?: number, year?: number) => {
+  const params = month && year ? `?month=${month}&year=${year}` : '';
+  const { data } = await api.get(`/productivity/calendar${params}`);
+  return data;
+};
+
+export const createCalendarEvent = async (eventData: any) => {
+  const { data } = await api.post('/productivity/calendar', eventData);
+  return data;
+};
+
+export const updateCalendarEvent = async (eventId: string, updateData: any) => {
+  const { data } = await api.patch(`/productivity/calendar/${eventId}`, updateData);
+  return data;
+};
+
+export const deleteCalendarEvent = async (eventId: string) => {
+  const { data } = await api.delete(`/productivity/calendar/${eventId}`);
+  return data;
+};
+
+// ==========================================
+// CALLS
+// ==========================================
+export const getCallHistory = async () => {
+  const { data } = await api.get('/super-comm/call/history/me');
+  return data;
+};
+
+export const startCall = async (callData: any) => {
+  const { data } = await api.post('/super-comm/call/start', callData);
+  return data;
+};
+
+export const endCall = async (callId: string, status: string) => {
+  const { data } = await api.post('/super-comm/call/end', { callId, status });
+  return data;
+};
+
+// ==========================================
+// GAMES (leaderboard + rooms)
+// ==========================================
+export const getGameLeaderboard = async () => {
+  const { data } = await api.get('/games/leaderboard');
+  return data;
+};
+
+export const getPublicRooms = async () => {
+  const { data } = await api.get('/games/rooms/public');
+  return data;
+};
+
+export const createGameRoom = async (roomData: any) => {
+  const { data } = await api.post('/games/rooms', roomData);
+  return data;
+};
+
+export const joinGameRoom = async (roomCode: string, userId: string, userName: string, avatar?: string) => {
+  const { data } = await api.post('/games/rooms/join', { roomCode, userId, userName, avatar });
+  return data;
+};
+
+// ==========================================
+// LIVE STREAMING
+// ==========================================
+export const getLiveStreams = async (category?: string) => {
+  const params = category && category !== 'All' ? `?category=${encodeURIComponent(category)}` : '';
+  const { data } = await api.get(`/super-comm/live${params}`);
+  return data;
+};
+
+export const startLiveStream = async (streamData: any) => {
+  const { data } = await api.post('/super-comm/live/start', streamData);
+  return data;
+};
+
+export const endLiveStream = async (streamId: string) => {
+  const { data } = await api.post(`/super-comm/live/${streamId}/end`);
+  return data;
+};
+
+export const joinLiveStream = async (streamId: string) => {
+  const { data } = await api.post(`/super-comm/live/${streamId}/join`);
+  return data;
+};
+
+export const leaveLiveStream = async (streamId: string) => {
+  const { data } = await api.post(`/super-comm/live/${streamId}/leave`);
+  return data;
 };

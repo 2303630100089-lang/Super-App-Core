@@ -21,6 +21,7 @@ import callRoutes from './routes/callRoutes.js';
 import businessRoutes from './routes/businessRoutes.js';
 import infoRoutes from './routes/infoRoutes.js';
 import serverRoutes from './routes/serverRoutes.js';
+import liveRoutes from './routes/liveRoutes.js';
 
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -64,6 +65,7 @@ app.use('/call', callRoutes);
 app.use('/business', businessRoutes);
 app.use('/info', infoRoutes);
 app.use('/server', serverRoutes);
+app.use('/live', liveRoutes);
 
 // Fallbacks for direct gateway calls
 app.use('/api/super-comm/profile', profileRoutes);

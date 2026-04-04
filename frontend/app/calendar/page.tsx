@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import useAuthStore from '@/store/useAuthStore'
-import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, X, CalendarDays, Bell, Repeat } from 'lucide-react'
+import { getCalendarEvents, createCalendarEvent, deleteCalendarEvent } from '@/services/apiServices'
+import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, X, CalendarDays, Repeat, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface CalendarEvent {
-  id: string
+  _id: string
   title: string
   date: string
   time: string
@@ -20,35 +22,53 @@ interface CalendarEvent {
 
 const COLORS = ['bg-blue-500', 'bg-pink-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-red-500', 'bg-cyan-500']
 
+function formatDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export default function CalendarPage() {
   const { user } = useAuthStore()
+  const queryClient = useQueryClient()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
 
-  // Form state
   const [newEvent, setNewEvent] = useState({
     title: '', time: '09:00', endTime: '10:00', type: 'event' as CalendarEvent['type'],
     color: COLORS[0], location: '', description: '', recurring: false
   })
 
-  // Sample events (would come from productivity-service API)
-  const [events, setEvents] = useState<CalendarEvent[]>([
-    { id: '1', title: 'Team Standup', date: formatDate(new Date()), time: '09:00', endTime: '09:30', color: 'bg-blue-500', type: 'meeting', recurring: true },
-    { id: '2', title: 'Lunch with Dev Team', date: formatDate(new Date()), time: '12:30', endTime: '13:30', color: 'bg-green-500', type: 'event', location: 'Cafe NextDoor' },
-    { id: '3', title: 'Sprint Review', date: formatDate(addDays(new Date(), 1)), time: '15:00', endTime: '16:00', color: 'bg-purple-500', type: 'meeting' },
-    { id: '4', title: 'Dentist Appointment', date: formatDate(addDays(new Date(), 3)), time: '10:00', endTime: '11:00', color: 'bg-red-500', type: 'reminder', location: 'City Dental Clinic' },
-    { id: '5', title: 'Gym Session', date: formatDate(addDays(new Date(), 2)), time: '06:00', endTime: '07:30', color: 'bg-orange-500', type: 'event', recurring: true },
-  ])
-
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
   const monthName = currentDate.toLocaleString('default', { month: 'long' })
+  const today = formatDate(new Date())
+
+  const { data: eventsData, isLoading } = useQuery({
+    queryKey: ['calendar-events', user?.id, year, month],
+    queryFn: async () => {
+      try {
+        const res = await getCalendarEvents(month + 1, year)
+        return (res?.data || []) as CalendarEvent[]
+      } catch { return [] as CalendarEvent[] }
+    },
+    enabled: !!user?.id,
+  })
+
+  const events: CalendarEvent[] = eventsData || []
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => createCalendarEvent(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calendar-events', user?.id] }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteCalendarEvent(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['calendar-events', user?.id] }),
+  })
 
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const firstDayOfWeek = new Date(year, month, 1).getDay()
-  const today = formatDate(new Date())
 
   const calendarDays = useMemo(() => {
     const days: (number | null)[] = []
@@ -61,24 +81,10 @@ export default function CalendarPage() {
 
   const handleCreateEvent = () => {
     if (!newEvent.title || !selectedDate) return
-    const event: CalendarEvent = {
-      id: Date.now().toString(),
-      title: newEvent.title,
-      date: selectedDate,
-      time: newEvent.time,
-      endTime: newEvent.endTime,
-      color: newEvent.color,
-      type: newEvent.type,
-      location: newEvent.location,
-      description: newEvent.description,
-      recurring: newEvent.recurring,
-    }
-    setEvents([...events, event])
+    createMutation.mutate({ ...newEvent, date: selectedDate })
     setShowCreateModal(false)
     setNewEvent({ title: '', time: '09:00', endTime: '10:00', type: 'event', color: COLORS[0], location: '', description: '', recurring: false })
   }
-
-  const deleteEvent = (id: string) => setEvents(events.filter(e => e.id !== id))
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
@@ -117,7 +123,6 @@ export default function CalendarPage() {
       <div className="max-w-5xl mx-auto w-full flex flex-col md:flex-row gap-6 p-4 md:p-6">
         {/* Calendar Grid */}
         <div className="flex-1">
-          {/* Navigation */}
           <div className="flex items-center justify-between mb-4">
             <button onClick={prevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors dark:text-white">
               <ChevronLeft size={20} />
@@ -128,44 +133,46 @@ export default function CalendarPage() {
             </button>
           </div>
 
-          {/* Day headers */}
           <div className="grid grid-cols-7 mb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest py-2">{day}</div>
             ))}
           </div>
 
-          {/* Calendar cells */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, idx) => {
-              if (!day) return <div key={`empty-${idx}`} />
-              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-              const dayEvents = getEventsForDate(dateStr)
-              const isToday = dateStr === today
-              const isSelected = dateStr === selectedDate
+          {isLoading ? (
+            <div className="text-center py-12"><Loader2 className="mx-auto animate-spin text-blue-500" size={28} /></div>
+          ) : (
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((day, idx) => {
+                if (!day) return <div key={`empty-${idx}`} />
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                const dayEvents = getEventsForDate(dateStr)
+                const isToday = dateStr === today
+                const isSelected = dateStr === selectedDate
 
-              return (
-                <button
-                  key={dateStr}
-                  onClick={() => setSelectedDate(dateStr)}
-                  className={`aspect-square p-1 rounded-2xl flex flex-col items-center justify-start gap-0.5 transition-all relative group ${
-                    isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none scale-105' :
-                    isToday ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' :
-                    'hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white'
-                  }`}
-                >
-                  <span className={`text-sm font-bold ${isSelected ? 'text-white' : ''}`}>{day}</span>
-                  {dayEvents.length > 0 && (
-                    <div className="flex gap-0.5">
-                      {dayEvents.slice(0, 3).map(e => (
-                        <div key={e.id} className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : e.color}`} />
-                      ))}
-                    </div>
-                  )}
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <button
+                    key={dateStr}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={`aspect-square p-1 rounded-2xl flex flex-col items-center justify-start gap-0.5 transition-all relative group ${
+                      isSelected ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none scale-105' :
+                      isToday ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' :
+                      'hover:bg-gray-100 dark:hover:bg-gray-800 dark:text-white'
+                    }`}
+                  >
+                    <span className={`text-sm font-bold ${isSelected ? 'text-white' : ''}`}>{day}</span>
+                    {dayEvents.length > 0 && (
+                      <div className="flex gap-0.5">
+                        {dayEvents.slice(0, 3).map(e => (
+                          <div key={e._id} className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : e.color}`} />
+                        ))}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Sidebar - Events for selected date */}
@@ -182,7 +189,7 @@ export default function CalendarPage() {
           {selectedDateEvents.length > 0 ? (
             <div className="space-y-3">
               {selectedDateEvents.sort((a, b) => a.time.localeCompare(b.time)).map(event => (
-                <div key={event.id} className="bg-white dark:bg-gray-900 rounded-2xl p-4 border dark:border-gray-800 shadow-sm hover:shadow-md transition-all group">
+                <div key={event._id} className="bg-white dark:bg-gray-900 rounded-2xl p-4 border dark:border-gray-800 shadow-sm hover:shadow-md transition-all group">
                   <div className="flex items-start gap-3">
                     <div className={`w-1 h-full min-h-[40px] rounded-full ${event.color}`} />
                     <div className="flex-1 min-w-0">
@@ -201,7 +208,7 @@ export default function CalendarPage() {
                         )}
                       </div>
                     </div>
-                    <button onClick={() => deleteEvent(event.id)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all">
+                    <button onClick={() => deleteMutation.mutate(event._id)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all">
                       <X size={14} className="text-red-500" />
                     </button>
                   </div>
@@ -229,7 +236,7 @@ export default function CalendarPage() {
                 .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
                 .slice(0, 4)
                 .map(event => (
-                  <div key={event.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer" onClick={() => setSelectedDate(event.date)}>
+                  <div key={event._id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer" onClick={() => setSelectedDate(event.date)}>
                     <div className={`w-8 h-8 rounded-xl ${event.color} flex items-center justify-center text-white text-xs font-bold`}>
                       {new Date(event.date + 'T00:00').getDate()}
                     </div>
@@ -247,7 +254,7 @@ export default function CalendarPage() {
       {/* Create Event Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-md border dark:border-gray-700 shadow-2xl space-y-4 animate-in zoom-in-95">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-md border dark:border-gray-700 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-lg dark:text-white">New Event</h3>
               <button onClick={() => setShowCreateModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
@@ -284,8 +291,8 @@ export default function CalendarPage() {
               <span className="text-sm font-medium dark:text-white flex items-center gap-1"><Repeat size={14} /> Recurring event</span>
             </label>
 
-            <button onClick={handleCreateEvent} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 dark:shadow-none active:scale-[0.98]">
-              Create Event
+            <button onClick={handleCreateEvent} disabled={createMutation.isPending} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 dark:shadow-none active:scale-[0.98] disabled:opacity-60">
+              {createMutation.isPending ? 'Creating...' : 'Create Event'}
             </button>
           </div>
         </div>
@@ -294,12 +301,4 @@ export default function CalendarPage() {
   )
 }
 
-function formatDate(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
 
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result
-}
