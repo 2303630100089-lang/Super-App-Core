@@ -13,6 +13,8 @@ import connectDB from './config/db.js';
 import groupChatRoutes from './routes/groupChatRoutes.js';
 import { handleErrors } from './utils/errors.js';
 import correlationMiddleware from './utils/correlationMiddleware.js';
+import GroupMessage from './models/Message.js';
+import Group from './models/Group.js';
 
 dotenv.config();
 const app = express();
@@ -41,8 +43,10 @@ app.use(mongoSanitize());
 app.use(hpp());
 
 import expenseRoutes from './routes/expenseRoutes.js';
+import groupRoutes from './routes/groupRoutes.js';
 
 app.use('/groups', groupChatRoutes);
+app.use('/group', groupRoutes);
 app.use('/expenses', expenseRoutes);
 
 app.get('/health', (req, res) => {
@@ -59,6 +63,23 @@ app.use(handleErrors);
 
 const startServer = async () => {
   await connectDB();
+
+  // Background job: dispatch scheduled messages
+  setInterval(async () => {
+    try {
+      const due = await GroupMessage.find({ isSent: false, scheduledAt: { $lte: new Date() } });
+      for (const msg of due) {
+        msg.isSent = true;
+        await msg.save();
+        await Group.findByIdAndUpdate(msg.groupId, {
+          lastMessage: { content: msg.content || `[${msg.type}]`, senderId: msg.senderId, senderName: msg.senderName, timestamp: new Date() }
+        });
+      }
+      if (due.length > 0) console.log(`📨 Dispatched ${due.length} scheduled group messages.`);
+    } catch (err) {
+      console.error('Error dispatching scheduled messages:', err);
+    }
+  }, 30000); // check every 30 seconds
   const server = app.listen(PORT, () => {
     console.log(`🚀 Group Chat Service running on port ${PORT}`);
   });

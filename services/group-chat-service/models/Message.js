@@ -44,7 +44,9 @@ const groupMessageSchema = new mongoose.Schema({
   isDeleted: { type: Boolean, default: false },
   deletedForEveryone: { type: Boolean, default: false },
   isPinned: { type: Boolean, default: false },
-  expiresAt: { type: Date } // for disappearing messages
+  expiresAt: { type: Date }, // for disappearing messages
+  scheduledAt: { type: Date, default: null }, // null = send immediately
+  isSent: { type: Boolean, default: true } // false when scheduledAt is in future
 }, { timestamps: true });
 
 groupMessageSchema.index({ groupId: 1, createdAt: -1 });

@@ -73,7 +73,7 @@ export const updateChannelSettings = async (req, res) => {
 export const sendChannelMessage = async (req, res) => {
   try {
     const { channelId } = req.params;
-    const { senderId, content, attachments } = req.body;
+    const { senderId, content, attachments, scheduledAt } = req.body;
     
     const channel = await Channel.findById(channelId);
     if (!channel) return res.status(404).json({ error: 'Channel not found' });
@@ -83,11 +83,39 @@ export const sendChannelMessage = async (req, res) => {
       return res.status(403).json({ error: 'Only admins can post in broadcast channels' });
     }
 
-    const message = new SuperMessage({ chatId: channelId, senderId, content, attachments: attachments || [] });
+    // Enforce slow mode (skip for admins)
+    const slowMode = channel.slowmodeSeconds || 0;
+    if (slowMode > 0 && !channel.admins.includes(senderId)) {
+      const lastMsg = await SuperMessage.findOne({ chatId: channelId, senderId, isSent: true }).sort({ createdAt: -1 });
+      if (lastMsg) {
+        const secondsSinceLast = (Date.now() - new Date(lastMsg.createdAt).getTime()) / 1000;
+        if (secondsSinceLast < slowMode) {
+          const waitSecs = Math.ceil(slowMode - secondsSinceLast);
+          return res.status(429).json({ error: `Slow mode: wait ${waitSecs}s before posting again` });
+        }
+      }
+    }
+
+    // Extract @mentions from content
+    const mentionMatches = (content || '').match(/@([a-zA-Z0-9_]+)/g) || [];
+    const mentions = mentionMatches.map(m => m.slice(1));
+
+    const isSent = !scheduledAt || new Date(scheduledAt) <= new Date();
+    const message = new SuperMessage({
+      chatId: channelId,
+      senderId,
+      content,
+      attachments: attachments || [],
+      mentions,
+      isSent,
+      scheduledAt: scheduledAt || null
+    });
     await message.save();
     
-    channel.lastMessageAt = new Date();
-    await channel.save();
+    if (isSent) {
+      channel.lastMessageAt = new Date();
+      await channel.save();
+    }
     
     res.status(201).json({ status: 'success', data: message });
   } catch (err) {
@@ -226,6 +254,137 @@ export const updatePermissions = async (req, res) => {
     
     await channel.save();
     res.json({ status: 'success', data: channel.permissionOverrides });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// --- ADDITIONAL CHANNEL FEATURES ---
+
+export const unsubscribeFromChannel = async (req, res) => {
+  try {
+    const { channelId, userId } = req.body;
+    await Channel.findByIdAndUpdate(channelId, { $pull: { subscribers: userId, admins: userId } });
+    res.json({ status: 'success', message: 'Unsubscribed from channel' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const editChannelMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content, userId } = req.body;
+    const msg = await SuperMessage.findById(messageId);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    if (msg.senderId !== userId) return res.status(403).json({ error: 'Cannot edit another user\'s message' });
+    msg.content = content;
+    msg.isEdited = true;
+    msg.editedAt = new Date();
+    await msg.save();
+    res.json({ status: 'success', data: msg });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteChannelMessage = async (req, res) => {
+  try {
+    const { channelId, messageId } = req.params;
+    const { userId } = req.body;
+    const msg = await SuperMessage.findById(messageId);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    const channel = await Channel.findById(channelId);
+    // Allow sender or channel admin to delete
+    if (msg.senderId !== userId && !channel?.admins?.includes(userId)) {
+      return res.status(403).json({ error: 'Not authorized to delete this message' });
+    }
+    msg.isDeleted = true;
+    msg.isDeletedEveryone = true;
+    msg.content = '';
+    await msg.save();
+    // Remove from pinned if pinned
+    await Channel.findByIdAndUpdate(channelId, { $pull: { pinnedMessages: messageId } });
+    res.json({ status: 'success', message: 'Message deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const reactToChannelMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { userId, emoji } = req.body;
+    const msg = await SuperMessage.findById(messageId);
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+    const existing = msg.reactions.findIndex(r => r.userId === userId);
+    if (existing > -1) msg.reactions.splice(existing, 1);
+    if (emoji) msg.reactions.push({ userId, emoji });
+    await msg.save();
+    res.json({ status: 'success', data: msg.reactions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const recordMessageView = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    await SuperMessage.findByIdAndUpdate(messageId, { $inc: { viewCount: 1 } });
+    res.json({ status: 'success' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getChannelAnalytics = async (req, res) => {
+  try {
+    const { channelId } = req.params;
+    const channel = await Channel.findById(channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+    const [totalMessages, totalViews, topMessages] = await Promise.all([
+      SuperMessage.countDocuments({ chatId: channelId, isSent: true }),
+      SuperMessage.aggregate([{ $match: { chatId: channelId } }, { $group: { _id: null, totalViews: { $sum: '$viewCount' } } }]),
+      SuperMessage.find({ chatId: channelId, isSent: true }).sort({ viewCount: -1 }).limit(5).select('content viewCount createdAt')
+    ]);
+    res.json({
+      status: 'success',
+      data: {
+        subscriberCount: channel.subscribers?.length || 0,
+        totalMessages,
+        totalViews: totalViews[0]?.totalViews || 0,
+        topMessages
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const exploreChannels = async (req, res) => {
+  try {
+    const { q, type, page = 1, limit = 20 } = req.query;
+    const filter = { isThread: false };
+    if (q) filter.name = new RegExp(q, 'i');
+    if (type) filter.type = type;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [channels, total] = await Promise.all([
+      Channel.find(filter).select('name description avatar type subscribers admins ownerId inviteCode lastMessageAt').sort({ 'subscribers.length': -1, lastMessageAt: -1 }).skip(skip).limit(parseInt(limit)),
+      Channel.countDocuments(filter)
+    ]);
+    res.json({ status: 'success', data: channels, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getScheduledPosts = async (req, res) => {
+  try {
+    const { channelId } = req.params;
+    const channel = await Channel.findById(channelId);
+    if (!channel) return res.status(404).json({ error: 'Channel not found' });
+    const posts = await SuperMessage.find({ chatId: channelId, isSent: false }).sort({ scheduledAt: 1 });
+    res.json({ status: 'success', data: posts });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
