@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { SuperAppAPI } from '@/api/SuperAppClient';
 import { StoryDemo } from '@/components/ui/demo';
 import { XCard } from '@/components/ui/x-gradient-card';
+import DockMorph from '@/components/ui/dock-morph';
+import { Home, MessageCircle, Newspaper, LayoutGrid, User } from 'lucide-react';
 
 // TIKTOK/AMAZON/TINDER - THE UNIFIED SUPER AGGREGATOR UI
 export default function SuperAppDashboard() {
@@ -136,31 +138,17 @@ export default function SuperAppDashboard() {
           )}
         </main>
 
-        {/* BOTTOM NAVIGATION (Uber / Zomato Shortcuts) */}
-        <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] sm:w-[400px] bg-black rounded-full px-6 py-4 flex justify-between items-center shadow-2xl z-50">
-          <button className="text-white flex flex-col items-center">
-            <span className="text-xl">🏠</span>
-            <span className="text-[10px] mt-1 font-medium">Home</span>
-          </button>
-          <button className="text-white/60 hover:text-white flex flex-col items-center transition">
-            <span className="text-xl">🚕</span>
-            <span className="text-[10px] mt-1 font-medium">Ride</span>
-          </button>
-          <div className="relative -top-6">
-            {/* Giant center + button */}
-            <button className="w-14 h-14 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/40 text-white text-2xl hover:scale-105 transition">
-              +
-            </button>
-          </div>
-          <button className="text-white/60 hover:text-white flex flex-col items-center transition">
-             <span className="text-xl">🍔</span>
-             <span className="text-[10px] mt-1 font-medium">Food</span>
-          </button>
-          <button className="text-white/60 hover:text-white flex flex-col items-center transition">
-             <span className="text-xl">💳</span>
-             <span className="text-[10px] mt-1 font-medium">Wallet</span>
-          </button>
-        </nav>
+        {/* BOTTOM NAVIGATION - DockMorph */}
+        <DockMorph
+          position="bottom"
+          items={[
+            { icon: Home, label: "Home", onClick: () => alert("Home clicked") },
+            { icon: MessageCircle, label: "Message", onClick: () => alert("Message clicked") },
+            { icon: Newspaper, label: "Feed", onClick: () => alert("Feed clicked") },
+            { icon: LayoutGrid, label: "Mini App", onClick: () => alert("Mini App clicked") },
+            { icon: User, label: "Profile", onClick: () => alert("Profile clicked") },
+          ]}
+        />
 
       </div>
     </div>
