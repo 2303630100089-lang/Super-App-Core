@@ -105,7 +105,7 @@ const Column = ({
         copy.push(cardToTransfer);
       } else {
         const insertAtIndex = copy.findIndex((el) => el.id === before);
-        if (insertAtIndex === undefined) return;
+        if (insertAtIndex === -1) return;
 
         copy.splice(insertAtIndex, 0, cardToTransfer);
       }
@@ -205,7 +205,7 @@ const Column = ({
 };
 
 type CardProps = CardType & {
-  handleDragStart: Function;
+  handleDragStart: (e: DragEvent, card: CardType) => void;
 };
 
 const Card = ({ title, id, column, handleDragStart }: CardProps) => {
