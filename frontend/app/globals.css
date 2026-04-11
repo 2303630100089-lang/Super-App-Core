@@ -6,6 +6,10 @@
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
   --primary: 263 70% 50%;
   --primary-foreground: 0 0% 100%;
   --secondary: 210 40% 96.1%;
@@ -19,6 +23,7 @@
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 263 70% 50%;
+  --radius: 1rem;
   --card: 0 0% 100%;
   --card-foreground: 222.2 84% 4.9%;
   --popover: 0 0% 100%;
@@ -26,19 +31,23 @@
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
+  --background: 222 10% 5%;
+  --foreground: 210 15% 90%;
+  --card: 222 20% 10%;
+  --card-foreground: 210 15% 90%;
+  --popover: 222 20% 10%;
+  --popover-foreground: 210 15% 90%;
   --primary: 263 70% 60%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 217.2 32.6% 17.5%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 222 20% 15%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 10% 60%;
+  --accent: 222 20% 15%;
   --accent-foreground: 210 40% 98%;
   --destructive: 0 62.8% 50.6%;
   --destructive-foreground: 0 0% 100%;
-  --border: 217.2 32.6% 17.5%;
+  --border: 0 0% 100% / 15%;
   --input: 217.2 32.6% 17.5%;
   --ring: 263 70% 60%;
   --card: 222.2 84% 4.9%;
@@ -235,4 +244,63 @@ body {
 /* ─── Safe Areas for Mobile ──────────────────────────────────────────────── */
 .pb-safe {
   padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ─── Testimonial Stack ──────────────────────────────────────────────────── */
+.testimonials-stack {
+  position: relative;
+  min-height: 320px;
+}
+
+.testimonial-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  border-radius: var(--radius-lg, 1.5rem);
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.4s var(--transition-bounce), opacity 0.4s ease;
+}
+
+.testimonial-card.is-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-effect {
+    background: rgba(16, 16, 24, 0.6);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.dark .glass-effect {
+  background: rgba(16, 16, 24, 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pagination-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  padding: 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.pagination-dot.active {
+  width: 1.5rem;
+  background: hsl(var(--primary));
 }
