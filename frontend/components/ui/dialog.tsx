@@ -48,6 +48,7 @@ const DialogContent = React.forwardRef<
         <Cross2Icon
           width={16}
           height={16}
+          strokeWidth={2}
           className="opacity-60 transition-opacity group-hover:opacity-100"
         />
         <span className="sr-only">Close</span>

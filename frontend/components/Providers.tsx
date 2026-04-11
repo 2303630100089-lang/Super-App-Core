@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
+import { ThemeProvider } from 'next-themes'
 import { useState } from 'react'
 
 function makeQueryClient() {
@@ -46,23 +47,27 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   if (!persister) {
     // SSR — use standard provider without persistence
     return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </ThemeProvider>
     )
   }
 
   return (
-    <PersistQueryClientProvider
-      client={queryClient}
-      persistOptions={{
-        persister,
-        maxAge: 1000 * 60 * 60 * 24, // 24 hours
-        buster: 'v1',
-      }}
-    >
-      {children}
-    </PersistQueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister,
+          maxAge: 1000 * 60 * 60 * 24, // 24 hours
+          buster: 'v1',
+        }}
+      >
+        {children}
+      </PersistQueryClientProvider>
+    </ThemeProvider>
   )
 }
 
