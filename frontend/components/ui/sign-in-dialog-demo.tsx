@@ -71,7 +71,7 @@ function Component() {
               Forgot password?
             </a>
           </div>
-          <Button type="button" className="w-full">
+          <Button type="submit" className="w-full">
             Sign in
           </Button>
         </form>
