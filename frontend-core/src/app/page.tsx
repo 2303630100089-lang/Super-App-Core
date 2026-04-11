@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { SuperAppAPI } from '../api/SuperAppClient';
+import { StoryDemo } from '@/components/ui/demo';
+import { XCard } from '@/components/ui/x-gradient-card';
 
 // TIKTOK/AMAZON/TINDER - THE UNIFIED SUPER AGGREGATOR UI
 export default function SuperAppDashboard() {
@@ -76,6 +78,22 @@ export default function SuperAppDashboard() {
           </div>
         );
 
+      case 'tweet':
+        return (
+          <div key={item.id} className="mb-6">
+            <XCard
+              link={item.link || 'https://x.com'}
+              authorName={item.authorName || item.title}
+              authorHandle={item.authorHandle || 'user'}
+              authorImage={item.authorImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop'}
+              content={Array.isArray(item.content) ? item.content : [item.title]}
+              isVerified={item.isVerified ?? false}
+              timestamp={item.timestamp || ''}
+              reply={item.reply}
+            />
+          </div>
+        );
+
       default:
         return (
           <div key={item.id} className="w-full bg-gray-50 rounded-2xl p-6 mb-4">
@@ -101,6 +119,11 @@ export default function SuperAppDashboard() {
              <div className="w-10 h-10 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full border-2 border-white shadow-sm"></div>
           </div>
         </header>
+
+        {/* STORIES */}
+        <div className="bg-white rounded-3xl mb-6 shadow-sm border border-gray-100 overflow-hidden">
+          <StoryDemo />
+        </div>
 
         {/* FEED / CONTENT STREAM */}
         <main className="pb-24">
