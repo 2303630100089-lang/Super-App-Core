@@ -25,7 +25,7 @@ const stepContent = [
       "Discover a powerful all-in-one platform — chat, rides, food delivery, marketplace, and much more.",
   },
   {
-    title: "Personalised Experience",
+    title: "Personalized Experience",
     description:
       "Switch between Personal and Business modes to unlock tools tailored to how you use the app.",
   },
