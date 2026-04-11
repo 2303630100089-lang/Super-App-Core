@@ -35,6 +35,9 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
   // Reminder fields
   const [reminderDate, setReminderDate] = useState('')
   const [reminderTime, setReminderTime] = useState('')
+
+  // Alert fields
+  const [alertLevel, setAlertLevel] = useState<'info' | 'warning' | 'critical'>('info')
   
   // Reel / Schedule / Draft
   const [isReel, setIsReel] = useState(false)
@@ -148,6 +151,7 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
       setIsReel(false)
       setScheduledAt('')
       setVisibility('public')
+      setAlertLevel('info')
       onClose()
     } catch (err) {
       console.error('Error submitting post:', err)
@@ -329,7 +333,7 @@ export default function PostComposerModal({ isOpen, onClose, onSubmit, isLoading
             <div>
               <label className="block text-xs font-black text-[var(--syn-comment)] uppercase mb-2">Alert Level</label>
               <div className="flex gap-2">
-                {['info', 'warning', 'critical'].map(level => (
+                {(['info', 'warning', 'critical'] as const).map(level => (
                   <button
                     key={level}
                     onClick={() => setAlertLevel(level)}
