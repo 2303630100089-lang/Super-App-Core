@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SuperAppAPI } from '../api/SuperAppClient';
+import { XCard } from '@/components/ui/x-gradient-card';
 
 // TIKTOK/AMAZON/TINDER - THE UNIFIED SUPER AGGREGATOR UI
 export default function SuperAppDashboard() {
@@ -73,6 +74,22 @@ export default function SuperAppDashboard() {
               <button className="bg-white text-pink-600 px-6 py-2 rounded-full font-bold shadow-md">Swipe Right</button>
               <button className="bg-transparent border-2 border-white text-white px-6 py-2 rounded-full font-bold">Skip</button>
             </div>
+          </div>
+        );
+
+      case 'tweet':
+        return (
+          <div key={item.id} className="mb-6">
+            <XCard
+              link={item.link || 'https://x.com'}
+              authorName={item.authorName || item.title}
+              authorHandle={item.authorHandle || 'user'}
+              authorImage={item.authorImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop'}
+              content={Array.isArray(item.content) ? item.content : [item.title]}
+              isVerified={item.isVerified ?? false}
+              timestamp={item.timestamp || ''}
+              reply={item.reply}
+            />
           </div>
         );
 
