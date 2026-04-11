@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SuperAppAPI } from '../api/SuperAppClient';
+import { StoryDemo } from '@/components/ui/demo';
 import { XCard } from '@/components/ui/x-gradient-card';
 
 // TIKTOK/AMAZON/TINDER - THE UNIFIED SUPER AGGREGATOR UI
@@ -118,6 +119,11 @@ export default function SuperAppDashboard() {
              <div className="w-10 h-10 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full border-2 border-white shadow-sm"></div>
           </div>
         </header>
+
+        {/* STORIES */}
+        <div className="bg-white rounded-3xl mb-6 shadow-sm border border-gray-100 overflow-hidden">
+          <StoryDemo />
+        </div>
 
         {/* FEED / CONTENT STREAM */}
         <main className="pb-24">
