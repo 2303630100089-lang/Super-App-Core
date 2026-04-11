@@ -150,7 +150,13 @@ export const TestimonialStack = ({ testimonials, visibleBehind = 2 }: Testimonia
       
       <div className="pagination flex gap-2 justify-center absolute bottom-0 left-0 right-0">
         {testimonials.map((_, index) => (
-          <button key={index} aria-label={`Go to testimonial ${index + 1}`} onClick={() => navigate(index)} className={`pagination-dot ${activeIndex === index ? 'active' : ''}`} />
+          <button
+            key={index}
+            aria-label={`Go to testimonial ${index + 1} of ${totalCards}`}
+            aria-current={activeIndex === index ? 'true' : undefined}
+            onClick={() => navigate(index)}
+            className={`pagination-dot ${activeIndex === index ? 'active' : ''}`}
+          />
         ))}
       </div>
     </section>
