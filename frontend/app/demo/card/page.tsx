@@ -1,5 +1,7 @@
-import Component from "@/components/ui/card";
+'use client';
+
+import RideConfirm from "@/components/ui/ride-confirm";
 
 export default function App() {
-  return <Component />;
+  return <RideConfirm />;
 }
