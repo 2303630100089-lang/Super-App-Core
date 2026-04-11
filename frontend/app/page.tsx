@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useState, useEffect } from 'react'
 import MapComponent from '@/components/ui/MapComponent'
 import clsx from 'clsx'
+import { OnboardingDialog } from '@/components/ui/onboarding-dialog-demo'
 
 const quickApps = [
   { label: 'Chat',     icon: MessageCircle, color: 'from-blue-500 to-indigo-600',    shadow: 'shadow-blue-500/30',    href: '/chat' },
@@ -368,6 +369,11 @@ export default function HomePage() {
               <Briefcase size={80} className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform" />
             </div>
           )}
+
+          {/* App Tour dialog */}
+          <div className="flex items-center justify-center">
+            <OnboardingDialog />
+          </div>
         </section>
       </div>
     </div>
