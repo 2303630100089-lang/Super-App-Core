@@ -9,6 +9,7 @@ import {
 import clsx from 'clsx'
 import api from '@/services/api'
 import useAuthStore from '@/store/useAuthStore'
+import { EventCountdownCard } from '@/components/ui/event-countdown-card'
 
 interface PostDisplayProps {
   post: any
@@ -195,18 +196,14 @@ export default function PostDisplay({
           )}
 
           {post.type === 'event' && (
-            <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/30 p-4 rounded-xl mb-3">
-              <p className="font-black text-lg text-blue-500 mb-3">{post.metadata?.title || post.content}</p>
-              <div className="space-y-2 text-sm text-[var(--text-primary)]">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-blue-500" />
-                  <span>{post.metadata?.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users size={16} className="text-blue-500" />
-                  <span>{post.metadata?.location}</span>
-                </div>
-              </div>
+            <div className="mb-3">
+              <EventCountdownCard
+                title={post.metadata?.title || post.content}
+                date={post.metadata?.date ? new Date(post.metadata.date) : undefined}
+                image={post.metadata?.image}
+                attendees={post.metadata?.attendees}
+                className="w-full"
+              />
             </div>
           )}
 
