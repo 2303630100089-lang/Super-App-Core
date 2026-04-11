@@ -221,7 +221,7 @@ export default function BusinessSalesPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-black text-slate-800 dark:text-white truncate">{sale.productName}</p>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    Qty {sale.quantity} • {new Date(sale.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
+                    Qty {sale.quantity} • {new Date(sale.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
                 <div className="text-right shrink-0">

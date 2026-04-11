@@ -80,18 +80,22 @@ export default function BusinessSettingsPage() {
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  const { isLoading } = useQuery({
+  const { data: remoteSettings, isLoading } = useQuery({
     queryKey: ['business-settings', user?.id],
     queryFn: async () => {
       const { data } = await api.get(`/settings/${user?.id}`)
-      const s = data?.data?.business ?? data?.data ?? {}
+      const s: BusinessSettings = data?.data?.business ?? data?.data ?? {}
       return s
     },
     enabled: !!user?.id,
-    onSuccess: (data: BusinessSettings) => {
-      setSettings(prev => ({ ...defaultSettings, ...prev, ...data }))
-    },
-  } as any)
+  })
+
+  // Sync remote settings into local state whenever they load/change
+  useEffect(() => {
+    if (remoteSettings) {
+      setSettings(prev => ({ ...defaultSettings, ...prev, ...remoteSettings }))
+    }
+  }, [remoteSettings])
 
   const saveMutation = useMutation({
     mutationFn: async () => {

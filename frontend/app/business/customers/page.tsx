@@ -51,7 +51,8 @@ export default function BusinessCustomersPage() {
   const totalCustomers = customers.length
   const activeCustomers = customers.filter(c => c.status === 'active').length
   const totalRevenue = customers.reduce((sum, c) => sum + (c.totalSpent ?? 0), 0)
-  const avgOrderValue = totalCustomers > 0 ? totalRevenue / customers.reduce((sum, c) => sum + (c.totalOrders ?? 0), 1) : 0
+  const totalOrders = customers.reduce((sum, c) => sum + (c.totalOrders ?? 0), 0)
+  const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
 
   const statusBadge = (status: Customer['status']) => {
     const map = {
