@@ -6,6 +6,7 @@ import useAuthStore from '@/store/useAuthStore'
 import { getCalendarEvents, createCalendarEvent, deleteCalendarEvent } from '@/services/apiServices'
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, X, CalendarDays, Repeat, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { EventCountdownCard } from '@/components/ui/event-countdown-card'
 
 interface CalendarEvent {
   _id: string
@@ -247,6 +248,12 @@ export default function CalendarPage() {
                   </div>
                 ))}
             </div>
+          </div>
+
+          {/* Featured event countdown */}
+          <div className="pt-4 border-t dark:border-gray-800">
+            <h3 className="font-black text-xs text-gray-400 uppercase tracking-widest mb-3">Featured Event</h3>
+            <EventCountdownCard className="w-full" />
           </div>
         </div>
       </div>
